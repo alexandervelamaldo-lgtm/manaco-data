@@ -6,15 +6,18 @@ Ejecutar con: ``streamlit run app.py``
 from __future__ import annotations
 
 import logging
+import runpy
 from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
+from sqlalchemy import func, select
 
 from src import auth
 from src.auth import ErrorAutenticacion
-from src.config import PERMISOS, ROL_ADMIN, ROL_GERENCIA
+from src.config import BASE_DIR, PERMISOS, ROL_ADMIN, ROL_GERENCIA
 from src.db import crear_tablas, obtener_sesion
+from src.models import Usuario
 from src.services import inventario as inv
 from src.ui import graficos
 from src.ui.comunes import ICONO_TOAST
@@ -31,11 +34,22 @@ st.set_page_config(page_title="Manaco Data", page_icon=":material/footprint:", l
 aplicar_estilos()
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner="Preparando la base de datos (solo la primera vez)…")
 def _preparar_base() -> bool:
-    """Crea las tablas si faltan (una vez por proceso)."""
+    """Crea las tablas si faltan y, en una instalación nueva, carga los datos iniciales (una vez por proceso)."""
     crear_tablas()
+    _cargar_datos_iniciales()
     return True
+
+
+def _cargar_datos_iniciales() -> None:
+    """Si la base no tiene usuarios (p. ej. en Streamlit Community Cloud), ejecuta init_db y seed_demo."""
+    with obtener_sesion() as s:
+        if s.scalar(select(func.count(Usuario.id))):
+            return
+    log.info("Base nueva: cargando el Excel, el usuario admin y los datos de demostración")
+    for script in ("init_db.py", "seed_demo.py"):
+        runpy.run_path(str(BASE_DIR / "scripts" / script), run_name="__main__")
 
 
 # --- Páginas definidas en este archivo ----------------------------------------

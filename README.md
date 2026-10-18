@@ -121,6 +121,14 @@ Pruebas: `python -m pytest`
 - Incorporar datos de comercio exterior de Bolivia (INE / Aduana Nacional).
 - Reportes automáticos por correo y control de traspasos entre tiendas.
 
+## Publicar en Streamlit Community Cloud
+
+1. Entre a [share.streamlit.io](https://share.streamlit.io) con su cuenta de GitHub → **Create app**.
+2. Repositorio `edisonayala000-netizen/manaco-data`, rama `main`, archivo `app.py`; en *Advanced settings* elija **Python 3.11** → **Deploy**.
+3. La primera vez que se abre, si la base no tiene usuarios, `app.py` ejecuta solo `init_db.py` y `seed_demo.py` (Excel, usuario `admin` y datos de demo).
+
+`packages.txt` instala las librerías del sistema que necesita OpenCV, y `requirements.txt` usa PyTorch para CPU. En el plan gratuito los datos se reinician cuando la app se reinicia, y el conteo por foto puede no caber en la memoria disponible; en ese caso el sistema avisa y deja el conteo manual.
+
 ## Diseño y capturas
 
 La identidad visual (paleta, tipografías Plus Jakarta Sans e Inter, íconos Material, tarjetas, banners y alertas) está centralizada en `src/ui/estilos.py`; los gráficos usan la plantilla Plotly `manaco` de `src/ui/graficos.py`. Para regenerar las capturas de `docs/capturas/`:
