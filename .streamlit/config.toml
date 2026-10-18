@@ -1,0 +1,45 @@
+[theme]
+base = "light"
+primaryColor = "#D62839"
+backgroundColor = "#F5F6FA"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#111827"
+borderColor = "#E5E7EB"
+showWidgetBorder = true
+showSidebarBorder = false
+baseRadius = "10px"
+buttonRadius = "10px"
+linkColor = "#D62839"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "'Plus Jakarta Sans':https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+headingFontWeights = [800, 700, 700, 700, 600, 600]
+redColor = "#DC2626"
+redBackgroundColor = "#FEE2E2"
+orangeColor = "#F59E0B"
+orangeBackgroundColor = "#FEF3C7"
+greenColor = "#16A34A"
+greenBackgroundColor = "#DCFCE7"
+blueColor = "#2563EB"
+blueBackgroundColor = "#DBEAFE"
+violetColor = "#7C3AED"
+dataframeHeaderBackgroundColor = "#F9FAFB"
+dataframeHeaderTextColor = "#6B7280"
+dataframeBorderColor = "#EEF0F4"
+chartCategoricalColors = ["#2563EB", "#7C3AED", "#D62839", "#16A34A", "#F59E0B", "#6B7280"]
+
+[theme.sidebar]
+backgroundColor = "#111827"
+secondaryBackgroundColor = "#1F2937"
+textColor = "#E5E7EB"
+borderColor = "#374151"
+
+[client]
+# Nunca mostrar trazas técnicas al usuario.
+showErrorDetails = "none"
+toolbarMode = "minimal"
+
+[server]
+maxUploadSize = 25
+
+[browser]
+gatherUsageStats = false

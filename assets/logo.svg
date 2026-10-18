@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="64" viewBox="0 0 250 64">
+  <text x="0" y="32" font-family="Plus Jakarta Sans, Segoe UI, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.5">
+    <tspan fill="#FFFFFF">Manaco</tspan><tspan fill="#F04452" dx="7">Data</tspan>
+  </text>
+  <text x="1" y="54" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="#9CA3AF" letter-spacing="0.4">Plataforma de inventario</text>
+</svg>

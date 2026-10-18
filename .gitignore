@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Datos locales que se generan solos (no se suben)
+data/manaco.db
+data/fotos/
+data/modelos/
+weights/
+*.pt
+
+# Entorno y editor
+.venv/
+.vscode/
+.idea/
+.streamlit/secrets.toml
