@@ -162,16 +162,17 @@ parrafo(
 )
 nota_caja(
     doc,
-    "Caso real detectado por el sistema",
+    "Ejemplo de la demo",
     "\"Faltan 2 pares de MAN-DEP-001 en Tienda Prado (esperado 38, contado 36)\" — una diferencia que "
-    "antes solo se habría notado en el cierre contable mensual.",
+    "sin control diario solo se notaría en el cierre contable mensual.",
 )
 
 h2(doc, "3.2 Comercio exterior y tablero de mercado")
 parrafo(
     doc,
     "El módulo de ETL (src/services/etl.py) limpia el Excel de comercio exterior de calzado "
-    "(240 filas originales → 230 válidas), documentando cada regla de limpieza en una bitácora. El "
+    "(240 filas válidas; 20 comparten clave con otra fila y se marcan, sin descartarse), documentando "
+    "cada regla de limpieza en una bitácora. El "
     "Tablero de mercado cruza esos datos con las ventas internas por categoría, usando el código del "
     "Sistema Armonizado (SA6) para enlazar el catálogo interno con las categorías del comercio exterior.",
 )
@@ -197,9 +198,9 @@ tabla(
 )
 parrafo(
     doc,
-    "Un backtest compara el error del pronóstico ajustado contra el no ajustado (MAPE): el pronóstico "
-    "ajustado por mercado informal obtiene un MAPE menor o igual, confirmando que ignorar la "
-    "competencia informal sobreestima sistemáticamente la demanda formal.",
+    "Un backtest compara el error del pronóstico ajustado contra el no ajustado (MAPE). Como el "
+    "historial simulado ya incluye el efecto del mercado informal, el backtest demuestra que el método "
+    "funciona, pero no mide la magnitud real del contrabando: eso se valida con ventas reales.",
 )
 
 h2(doc, "3.4 Prototipo de escenario")
@@ -235,34 +236,52 @@ numerado(doc, "Recomendación ejecutiva — comparación de 2 alternativas y 3 i
 h1(doc, "4. Problemas priorizados")
 tabla(
     doc,
-    ["N.º", "Problema", "Justificación"],
+    ["N.º", "Problema y área", "Justificación"],
     [
-        ("1", "Inventario sin control diario en tienda", "La merma solo se nota en el cierre contable mensual sin una alerta diaria."),
-        ("2", "Datos de mercado externo y ventas internas desintegrados", "Deportivo importa ~3 veces lo que exporta: dependencia antes invisible."),
-        ("3", "Presión creciente del mercado informal / contrabando", "El pronóstico sin ajustar sobreestima la demanda real."),
-        ("4", "Producción sin cobertura ni calidad garantizadas", "El escenario puede mostrar defectos sobre meta y cobertura bajo el 100%."),
-        ("5", "Calidad de la ingesta de datos de sucursales", "Errores en los archivos de sucursal distorsionan los reportes de gerencia."),
+        ("1", "Inventario sin control diario en tienda (producción, inventarios y logística)", "Sin conteo diario, una diferencia de stock solo se nota en el cierre contable mensual, cuando ya no se puede rastrear su causa."),
+        ("2", "Presión de la oferta importada y del mercado informal (competitividad y mercado)", "Dato: Deportivo importa 2,97 veces lo que exporta. Hipótesis a validar: el calzado informal le quita ventas a Manaco."),
+        ("3", "Rentabilidad por línea sin medir (rentabilidad y costos)", "El Cuero vale casi el doble por par en el mercado de referencia, pero Manaco no integra sus costos para saber qué línea le deja más utilidad."),
+        ("4", "Cliente desconocido (clientes, segmentación y marketing)", "El sistema registra qué se vende, dónde y cuándo, pero no quién compra: no se puede segmentar ni medir el canal digital."),
+        ("5", "Datos dispersos y sin responsables claros (gestión organizacional y calidad de datos)", "Mercado, ventas, inventario y calidad están separados, y los archivos de sucursal llegan con errores."),
     ],
+)
+parrafo(
+    doc,
+    "El Excel de comercio exterior responde comparaciones de categorías, socios y valor por par en un "
+    "mercado de referencia; no responde costos, márgenes, clientes ni ventas de Manaco: eso exige datos internos.",
 )
 
 # --- 5. Síntesis ejecutiva -------------------------------------------------
 h1(doc, "5. Síntesis ejecutiva del diagnóstico")
 h2(doc, "3 hallazgos")
-numerado(doc, "El control de inventario pasa de reactivo a preventivo: el sistema genera una alerta inmediata en vez de descubrir la merma en el cierre contable.")
-numerado(doc, "Deportivo es la línea más expuesta a la oferta externa y a la sensibilidad del mercado informal (0.35 frente a 0.20 y 0.10).")
-numerado(doc, "Ajustar el pronóstico por presión informal reduce el error (MAPE), no lo aumenta: ignorar la competencia informal sobreestima la demanda formal.")
+numerado(doc, "Deportivo es la categoría más dependiente de la importación: importa 2,97 veces lo que exporta en valor y 2,91 veces en pares. Como la proporción casi no cambia con la métrica, la conclusión es sólida.")
+numerado(doc, "El calzado de cuero es un nicho de mayor valor por par: unos 41–45 USD por par frente a unos 25 USD de las otras dos categorías. Es pequeño en volumen, pero cada par vale casi el doble: es donde conviene diferenciarse por calidad y no por precio.")
+numerado(doc, "Medir por valor o por cantidad cambia quiénes son los proveedores relevantes: por categoría el orden no cambia, pero República Checa entra al top 6 de proveedores por pares y no por valor, porque su calzado es el más barato de la base (unos 9 USD por par).")
 
 h2(doc, "2 limitaciones")
-numerado(doc, "La referencia de comercio exterior usada es española, no boliviana, y es un valor aduanero, no el precio al consumidor.")
-numerado(doc, "El pronóstico y el prototipo de escenario corren sobre datos simulados; el sistema real solo tiene ~30 días de ventas, insuficiente para estimar estacionalidad con rigor estadístico.")
+numerado(doc, "La referencia es española y el valor es aduanero: sirve para comparar categorías y proporciones, pero no representa el mercado boliviano ni el precio al consumidor, que incluye aranceles, transporte y margen del comerciante.")
+numerado(doc, "La cobertura por año es desigual (28 registros en 2020 y 82 en 2024): cualquier crecimiento entre años refleja la cantidad de registros, no el mercado, por lo que no se sacan tendencias temporales.")
 
 h2(doc, "1 pregunta estratégica")
 parrafo(
     doc,
-    "¿Qué mezcla de producción por línea debe planificar Manaco para los próximos 6 meses si la presión "
-    "del mercado informal sigue la trayectoria actual del tipo de cambio paralelo, y qué tanto de la "
-    "brecha de precio frente a ese mercado informal está dispuesta a absorber sin sacrificar margen?",
+    "Si Deportivo es la línea con más presión importada y Cuero la de mayor valor por par, ¿debe Manaco "
+    "defender volumen en Deportivo o concentrar su diferenciación en Cuero? ¿Qué margen real por línea "
+    "necesitaría ver para decidirlo?",
     italic=True,
+)
+
+h2(doc, "Respuestas a las 5 preguntas del caso")
+tabla(
+    doc,
+    ["Pregunta del caso", "Respuesta con los datos"],
+    [
+        ('¿Qué datos internos debería recopilar Manaco?', 'Ventas por producto, tienda y día (ya las registra el sistema); costos reales por lote; defectos y devoluciones con su motivo; datos del cliente (segmento, ciudad y canal); fechas de entrega; inventario por almacén; y precios reales con descuentos.'),
+        ('¿Qué hipótesis sobre competencia, abastecimiento o diferenciación podría investigar?', 'Competencia: Deportivo depende de la importación (importa 2,97 veces lo que exporta), así que es la línea más expuesta al calzado importado barato. Abastecimiento: hay proveedores muy baratos por par (República Checa, unos 9 USD) que sirven de referencia de costo. Diferenciación: el Cuero vale casi el doble por par, lo que sugiere un nicho de calidad.'),
+        ('¿Cómo varía el valor por par y por qué no es el precio al consumidor?', 'Va de 8 a 119 USD por registro; la mediana es de unos 47 USD en Cuero y unos 27 USD en Deportivo y en Caucho y cuero. Es un valor aduanero: no incluye aranceles, impuestos, transporte ni el margen del comerciante, así que el precio en tienda es mayor.'),
+        ('¿Qué países son proveedores y destinos relevantes?', 'Proveedores, por valor: Grecia, Países Bajos, Vietnam, Irlanda, Turquía y Rumanía. Destinos, por valor: Indonesia, Vietnam, Eslovenia, Irlanda, Grecia y Austria. Son relevantes dentro de los 30 socios del archivo, no del comercio mundial.'),
+        ('¿Qué categorías tienen mayor valor? ¿Cambia al comparar con la cantidad?', 'Caucho y cuero lidera en ambos flujos (11.709,7 M USD importados y 8.514,2 M USD exportados), seguida de Deportivo; Cuero es muy pequeña. Por categoría el orden no cambia con la cantidad de pares; por socio sí: República Checa entra al top 6 de proveedores por pares, pero no por valor.'),
+    ],
 )
 
 # --- 6. Ficha de una página -------------------------------------------------
@@ -271,46 +290,74 @@ tabla(
     doc,
     ["Campo", "Contenido"],
     [
-        ("Problema", "Manaco pierde control del inventario diario en tienda y no integra sus datos internos con el mercado externo."),
-        ("Solución", "Manaco Data: control diario con alertas, tablero de mercado cruzado, y pronóstico ajustado con prototipo de escenario."),
-        ("Objetivo 1 (SMART)", "Reducir a menos del 5% los cierres con diferencia por tienda en 3 meses."),
-        ("Objetivo 2 (SMART)", "100% de las tiendas registrando apertura, venta y cierre a diario en el primer mes."),
-        ("Objetivo 3 (SMART)", "Mantener el MAPE ajustado por mercado informal por debajo del MAPE sin ajustar, cada mes."),
-        ("Responsables", "Gerencia comercial, Encargado de tienda, Administrador/TI."),
-        ("Riesgos", "Falta de disciplina en el registro diario; fallos del conteo por foto; decisiones sobre datos simulados sin validar; límite de escala de SQLite."),
+        ("Problema", "Manaco no controla a diario su inventario ni mide la rentabilidad real de cada línea, y no cruza esos datos con el mercado."),
+        ("Solución analítica", "Manaco Data: control diario con alertas, tablero de mercado cruzado por código SA6, y pronóstico con prototipo de escenario (hoy con datos [Simulado]). Apoya la decisión de qué línea priorizar y cuánto producir."),
+        ("Datos que necesita", "Aperturas, ventas y cierres diarios (ya registrados); comercio exterior (ya limpio); costos, defectos y devoluciones por lote (por reemplazar con datos reales)."),
+        ("Objetivo 1 — Inventario", "Cierres con diferencia por debajo del 10% al año 1, del 5% al año 2 y del 3% al año 3. KPI: % de cierres Correcto por tienda."),
+        ("Objetivo 2 — Datos reales", "100% de tiendas con registro diario desde el mes 3; 24 meses de historia real al año 2; MAPE menor al 15% al año 3. KPI: % de tiendas con registro completo, meses de historia real y MAPE."),
+        ("Objetivo 3 — Calidad", "Defectos de 3% o menos al año 1, 2,5% al año 2 y 2% al año 3; devoluciones por costura y pegado reducidas a la mitad. KPI: tasa de defectos y devoluciones por lote."),
+        ("Responsables", "Gerencia General (comité mensual), Gerencia Comercial, Gerencia de Producción, encargados de tienda y Administración/TI."),
+        ("Riesgo 1 y mitigación", "Registro diario incompleto: el cierre de inventario se suma al cierre de caja, con reporte semanal por tienda."),
+        ("Riesgo 2 y mitigación", "Decidir con datos simulados: etiqueta [Simulado], sin comprometer presupuesto hasta tener 12 meses reales."),
+        ("Viabilidad", "El sistema ya funciona en local; el costo principal es el tiempo del personal y la migración a PostgreSQL en el año 2."),
     ],
 )
 
 # --- 7. Recomendación ejecutiva --------------------------------------------
 h1(doc, "7. Recomendación ejecutiva")
+h2(doc, "Lectura de los indicadores")
+bullet(doc, "Producción [Simulado]: lotes mensuales calibrados con la demanda base de cada línea (±15%).")
+bullet(doc, "Defectos [Simulado]: entre 1% y 5% por lote; cerca de la mitad de los lotes supera la meta de 3%.")
+bullet(doc, "Devoluciones [Simulado]: entre el 20% y el 50% de los pares defectuosos vuelven del cliente.")
+bullet(doc, "Entregas: no hay datos; el sistema no registra fechas de despacho ni de entrega.")
+bullet(doc, "Margen de catálogo [Supuesto]: cerca del 45% en las tres líneas, pero el Cuero deja unos 239 Bs por par frente a unos 155 Bs de las otras dos.")
+parrafo(
+    doc,
+    "Falta para estimar rentabilidad: costos reales por lote, costos fijos, costo de cada devolución, "
+    "gastos de almacenamiento y distribución, precio real con descuentos y fechas de entrega.",
+)
 tabla(
     doc,
-    ["", "Alternativa A — Competir por precio", "Alternativa B — Diferenciar por calidad y disponibilidad"],
+    ["", "Alternativa A — Competir por precio", "Alternativa B — Diferenciar por calidad en Cuero"],
     [
-        ("Acción", "Bajar el precio para cerrar la brecha informal.", "Mantener precio; bajar defectos y asegurar cobertura."),
-        ("Control", "Baja (depende del tipo de cambio paralelo).", "Alta (procesos internos de producción)."),
-        ("Riesgo principal", "Guerra de precios sin los costos formales del competidor informal.", "Que la diferenciación no se perciba si no se comunica."),
+        ("Acción", "Bajar el precio para cerrar la brecha informal.", "Mantener precio; control de calidad por lote y garantía en Cuero."),
+        ("Beneficio", "Recuperar volumen.", "Menos devoluciones; marca más fuerte en la línea de mayor valor por par."),
+        ("Costo", "Con margen de ~45%, bajar 10% el precio exige ~29% más pares para mantener la utilidad bruta.", "Inspección por lote, capacitación y stock de tallas; se cuantifica con costos reales."),
+        ("Control", "Bajo (depende del tipo de cambio paralelo).", "Alto (procesos internos)."),
+        ("Riesgo principal", "Guerra de precios contra un competidor sin costos formales.", "Que la garantía no se perciba si no se comunica."),
     ],
 )
 nota_caja(
     doc,
-    "Acción comercial recomendada",
-    "Alternativa B — Diferenciar por calidad y disponibilidad. La brecha de precio depende del tipo de "
-    "cambio paralelo, fuera del control de Manaco; la tasa de defectos y la cobertura de producción son "
-    "palancas internas que ya se miden mes a mes en el Prototipo de escenario.",
+    "Recomendación: Alternativa B",
+    "La brecha de precio depende del tipo de cambio paralelo, fuera del control de Manaco, y un 10% "
+    "menos de precio exige casi un 30% más de volumen solo para quedar igual. La calidad es una palanca "
+    "interna, y el Cuero es la línea donde el mercado paga más por par.",
+)
+h2(doc, "Segmento y acción comercial")
+parrafo(
+    doc,
+    "Segmento [Supuesto]: adultos que trabajan en oficinas o servicios y compran calzado de cuero de vestir "
+    "en las tiendas de La Paz, Cochabamba y Santa Cruz. El Cuero tiene el mayor valor por par, la menor "
+    "presión importada (1,52 frente a 2,97 de Deportivo) y el mayor margen por par del catálogo.",
+)
+parrafo(
+    doc,
+    "Acción: lanzar \"Cuero garantizado\", con garantía de 6 meses en costura y suela, control de calidad "
+    "de cada lote y stock asegurado de tallas centrales en las 3 tiendas.",
 )
 h2(doc, "3 indicadores de seguimiento")
-numerado(doc, "Cobertura de producción vs. demanda proyectada (meta ≥100%).")
-numerado(doc, "Tasa de defectos de producción (meta ≤3%).")
+numerado(doc, "Tasa de defectos y devoluciones de la línea Cuero (meta ≤3% de defectos).")
+numerado(doc, "Ventas de la línea Cuero en pares y Bs frente a los 3 meses previos.")
 numerado(doc, "% de cierres de inventario correctos por tienda.")
 
 # --- 8. Limitaciones y próximos pasos --------------------------------------
 h1(doc, "8. Limitaciones y próximos pasos")
 parrafo(
     doc,
-    "Los datos de inventario y comercio exterior son reales y ya están limpios en el sistema. Los datos "
-    "de producción, calidad y mercado local provienen del pronóstico y el prototipo de escenario, y "
-    "están explícitamente etiquetados [Simulado] o [Supuesto] en el código. Antes de comprometer "
+    "Los datos de comercio exterior son reales y ya están limpios en el sistema. Las ventas e inventario "
+    "vienen de la demo, y los datos de producción, calidad, mercado local y precios de catálogo están "
+    "explícitamente etiquetados [Simulado] o [Supuesto]. Antes de comprometer "
     "presupuesto real con los objetivos de este documento, deben reemplazarse por historia real de "
     "Manaco.",
 )

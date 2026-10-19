@@ -1,4 +1,4 @@
-"""Exportación de la planilla de cierres a Excel con formato."""
+"""Exportaciones a Excel con formato: planilla de cierres y tabla depurada de comercio exterior."""
 
 from __future__ import annotations
 
@@ -86,6 +86,48 @@ def exportar_cierres_excel(cierres: pd.DataFrame) -> bytes:
         _escribir_tabla(resumen, por_tienda, fila_inicio=inicio)
         resumen.freeze_panes = None
         resumen.column_dimensions["A"].width = 30
+
+    salida = BytesIO()
+    libro.save(salida)
+    return salida.getvalue()
+
+
+def exportar_comercio_excel(datos: pd.DataFrame, diccionario: pd.DataFrame, bitacora: pd.DataFrame) -> bytes:
+    """Excel de la tabla depurada de comercio exterior (Estación 2 del caso).
+
+    ``datos`` usa los nombres de columna del Excel original y trae ``registro_valido`` y
+    ``clave_repetida``. Hojas: ``Tabla depurada`` (registros válidos), ``Claves repetidas``
+    (se conservan y se marcan para validarlas con la fuente), ``Diccionario`` y ``Bitácora``.
+    """
+    columnas = list(diccionario["Columna"])
+    validos = datos[datos["registro_valido"]].copy()
+    depurada = validos[columnas].copy()
+    depurada["Clave repetida"] = validos["clave_repetida"].map({True: "Sí", False: "No"})
+    repetidas = datos[datos["clave_repetida"]].sort_values(
+        ["Flujo_comercial", "Año", "Código_SA6", "Socio_comercial"])[columnas]
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Tabla depurada"
+    _escribir_tabla(hoja, depurada)
+    hoja.auto_filter.ref = hoja.dimensions
+
+    hoja_rep = libro.create_sheet("Claves repetidas")
+    hoja_rep["A1"] = ("Filas que comparten Flujo, Año, Código SA6 y Socio con otra fila, con valores distintos. "
+                      "Se conservan y se marcan: deben validarse con la fuente original.")
+    hoja_rep["A1"].font = Font(italic=True)
+    _escribir_tabla(hoja_rep, repetidas, fila_inicio=3)
+
+    hoja_dic = libro.create_sheet("Diccionario")
+    _escribir_tabla(hoja_dic, diccionario)
+    hoja_dic.column_dimensions["C"].width = 70
+    for fila in hoja_dic.iter_rows(min_row=2, min_col=3, max_col=3):
+        for celda in fila:
+            celda.alignment = Alignment(wrap_text=True, vertical="top")
+
+    hoja_bit = libro.create_sheet("Bitácora")
+    _escribir_tabla(hoja_bit, bitacora)
+    hoja_bit.column_dimensions["C"].width = 80
 
     salida = BytesIO()
     libro.save(salida)

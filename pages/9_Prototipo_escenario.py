@@ -65,7 +65,9 @@ resultado = pr.backtest(historial, linea)
 
 prod_linea = produccion[produccion["categoria"] == linea]
 cal_linea = calidad[calidad["categoria"] == linea]
-precio_manaco = float(precios_manaco.loc[precios_manaco["categoria"] == linea, "precio_venta_bs"].mean() or 0)
+precios_linea = precios_manaco.loc[precios_manaco["categoria"] == linea, "precio_venta_bs"]
+precio_manaco = float(precios_linea.mean()) if not precios_linea.empty else 0.0
+precio_promedio = float(precios_manaco["precio_venta_bs"].mean()) if not precios_manaco.empty else 0.0
 
 ventas_proyectadas = float(futuro["Pronostico_ajustado"].iloc[0])
 meta_ventas = float(historial["Pares_vendidos"].tail(12).mean())
@@ -79,18 +81,21 @@ pares_recientes = prod_linea.loc[prod_linea["fecha"].isin(meses_recientes), "par
 defectos_recientes = cal_linea.loc[cal_linea["fecha"].isin(meses_recientes), "defectos"].sum()
 tasa_defectos_pct = defectos_recientes / pares_recientes * 100 if pares_recientes else 0.0
 
-# [Supuesto]: el precio informal escala junto con el tipo de cambio paralelo elegido en el slider.
+# [Supuesto]: se compara calzado equivalente (descuento informal promedio aplicado a la línea) y el
+# precio informal sube en bolivianos con el tipo de cambio paralelo (ver pronostico.brecha_precio).
 precio_competidor_base = float(mercado_local["precio_competidor_bs"].tail(12).mean())
-precio_competidor_escenario = precio_competidor_base * (tipo_cambio / tipo_cambio_actual)
-brecha_pct = ((precio_manaco - precio_competidor_escenario) / precio_competidor_escenario * 100
-              if precio_competidor_escenario else 0.0)
+brecha_pct = pr.brecha_precio(precio_manaco, precio_promedio, precio_competidor_base, tipo_cambio,
+                              tipo_cambio_actual)
 
 ingesta_reciente = ingesta.sort_values("fecha").tail(18)
 rechazo_pct = (ingesta_reciente["filas_rechazadas"].sum() / ingesta_reciente["filas_leidas"].sum() * 100
               if ingesta_reciente["filas_leidas"].sum() else 0.0)
 
 st.write("")
-seccion("Indicadores frente a metas de referencia", "[Supuesto]: metas ilustrativas del equipo, no oficiales")
+# La pastilla de cada KPI es verde (▲) si cumple su meta y roja (▼) si no, también en los
+# indicadores donde "menos es mejor" (defectos, brecha y rechazo).
+seccion("Indicadores frente a metas de referencia",
+        "[Supuesto]: metas ilustrativas del equipo, no oficiales · verde = cumple, rojo = no cumple")
 i1, i2, i3, i4, i5 = st.columns(5)
 with i1:
     tarjeta_kpi("Ventas proyectadas", num(ventas_proyectadas), f"meta: {num(meta_ventas)} pares/mes",
@@ -105,16 +110,16 @@ with i2:
 with i3:
     tarjeta_kpi("Tasa de defectos", f"{num(tasa_defectos_pct, 1)}%", f"meta: ≤{num(META_DEFECTOS_PCT, 0)}%",
                 icono="rule", color="verde" if tasa_defectos_pct <= META_DEFECTOS_PCT else "rojo",
-                tendencia="sube" if tasa_defectos_pct > META_DEFECTOS_PCT else "baja",
+                tendencia="sube" if tasa_defectos_pct <= META_DEFECTOS_PCT else "baja",
                 alerta=tasa_defectos_pct > META_DEFECTOS_PCT)
 with i4:
     tarjeta_kpi("Brecha vs. mercado informal", f"{num(brecha_pct, 0)}%", f"meta: ≤{num(META_BRECHA_PCT, 0)}%",
                 icono="price_change", color="verde" if brecha_pct <= META_BRECHA_PCT else "rojo",
-                tendencia="sube" if brecha_pct > META_BRECHA_PCT else "baja", alerta=brecha_pct > META_BRECHA_PCT)
+                tendencia="sube" if brecha_pct <= META_BRECHA_PCT else "baja", alerta=brecha_pct > META_BRECHA_PCT)
 with i5:
     tarjeta_kpi("Rechazo en ingesta de datos", f"{num(rechazo_pct, 1)}%", f"meta: ≤{num(META_RECHAZO_PCT, 0)}%",
                 icono="fact_check", color="verde" if rechazo_pct <= META_RECHAZO_PCT else "rojo",
-                tendencia="sube" if rechazo_pct > META_RECHAZO_PCT else "baja", alerta=rechazo_pct > META_RECHAZO_PCT)
+                tendencia="sube" if rechazo_pct <= META_RECHAZO_PCT else "baja", alerta=rechazo_pct > META_RECHAZO_PCT)
 
 st.write("")
 with tarjeta("g-demanda", "Demanda proyectada", "Con el escenario de presión informal elegido arriba"):
@@ -180,6 +185,11 @@ nota(
     "no hay 24 meses de historia real de ventas, producción, calidad ni mercado local en el sistema.</li>"
     "<li><b>[Supuesto]</b> Las 5 metas de los indicadores y la relación entre el tipo de cambio paralelo y el "
     "precio del mercado informal son estimaciones del equipo, no cifras oficiales de Manaco.</li>"
+    "<li><b>Brecha:</b> compara cada línea con calzado informal equivalente (el descuento informal promedio "
+    "aplicado a su precio). Si sube el dólar paralelo, el calzado informal, que se compra en dólares, se "
+    "encarece en bolivianos y la brecha de Manaco se reduce.</li>"
+    "<li><b>Cobertura:</b> la producción simulada se calibra con la demanda base de cada línea, así que la "
+    "cobertura cambia cuando el escenario mueve la demanda proyectada.</li>"
     "<li>La sección <b>Referencia externa</b> usa el Excel de comercio exterior de España (datos reales de ese "
     "archivo), que sirve solo como referencia del mercado internacional.</li></ul>",
     icono="science",

@@ -12,3 +12,4 @@ bcrypt>=4.2
 pytest>=8.3
 # Opcional: solo se usa si DATABASE_URL apunta a postgresql+psycopg://...
 psycopg[binary]>=3.2
+Add-Content requirements.txt "python-docx>=1.1"

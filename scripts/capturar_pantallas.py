@@ -115,6 +115,12 @@ def main() -> None:
         capturar(page, "11_catalogo", 1366)
         ir(page, "Usuarios")
         capturar(page, "12_usuarios", 1366)
+        ir(page, "Pronóstico de demanda")
+        capturar(page, "16_pronostico", 1366)
+        ir(page, "Prototipo de escenario")
+        capturar(page, "17_prototipo", 1366)
+        ir(page, "Entregables escritos")
+        capturar(page, "18_entregables", 1366)
         page.close()
 
         # --- Celular (390 px) ---

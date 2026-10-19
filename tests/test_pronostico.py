@@ -57,3 +57,17 @@ def test_backtest_el_ajuste_informal_no_empeora_el_error(linea):
     # La presión informal tiene una tendencia sostenida al alza en el historial simulado;
     # el modelo que la reconstruye y reaplica no debería ser peor que el que la ignora.
     assert resultado.mape_ajustado <= resultado.mape_base
+
+
+def test_brecha_precio_compara_calzado_equivalente():
+    # Con el mismo descuento informal, todas las líneas tienen la misma brecha, sin importar su precio.
+    brechas = {precio: pr.brecha_precio(precio, 400, 350, 9.0, 9.0) for precio in (250, 400, 600)}
+    assert len({round(b, 6) for b in brechas.values()}) == 1
+    assert round(brechas[400], 1) == round((400 / 350 - 1) * 100, 1)
+
+
+def test_brecha_precio_baja_si_sube_el_dolar_paralelo():
+    actual = pr.brecha_precio(500, 400, 350, 9.0, 9.0)
+    con_dolar_alto = pr.brecha_precio(500, 400, 350, 11.0, 9.0)
+    assert con_dolar_alto < actual
+    assert pr.brecha_precio(0, 400, 350, 9.0, 9.0) == 0.0

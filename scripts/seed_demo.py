@@ -133,6 +133,8 @@ def main() -> None:
           f"{alertas} con diferencia ({pendientes} alertas pendientes).")
     print("  Usuarios demo: encargado / manaco2026 · gerencia / manaco2026")
     print("  Hoy queda libre para hacer la demo en vivo: apertura → venta → foto → cierre.")
+    print("⚠ Este script borró los datos [Simulado] de producción y calidad. Ejecute ahora")
+    print("  python scripts/seed_solucion.py para que el Prototipo de escenario tenga datos.")
 
 
 if __name__ == "__main__":

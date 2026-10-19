@@ -18,6 +18,7 @@ conda env create -f environment.yml
 conda activate manaco
 python scripts/init_db.py      # crea las tablas, carga el Excel y el usuario admin
 python scripts/seed_demo.py    # (opcional) 3 tiendas, 12 productos y 30 días de operación
+python scripts/seed_solucion.py  # (opcional) 24 meses [Simulado] para Pronóstico y Prototipo; siempre después de seed_demo
 streamlit run app.py
 ```
 
@@ -46,9 +47,12 @@ Se abre en el navegador en `http://localhost:8501`. Para usarlo desde el celular
 | **Ventas** | admin, encargado | Formulario rápido de venta, tabla de ventas del día y stock disponible en tiempo real (saldo inicial − vendido). |
 | **Cierre y conteo** | admin, encargado | Muestra inicial, vendido y esperado; recibe la foto (cámara o archivo), cuenta con IA, permite corregir a mano y guarda el cierre con su alerta de color. |
 | **Historial** | admin, gerencia | Planilla de cierres con filtros y colores por estado; permite ver la foto de evidencia y descargar un **Excel** con formato y hoja de resumen. |
-| **Tablero de mercado** | admin, gerencia | KPI y 3 gráficos del comercio exterior limpio (230 registros válidos), filtros, selector de métrica, limitaciones de los datos y la pestaña *Datos internos*. |
+| **Tablero de mercado** | admin, gerencia | KPI y 3 gráficos del comercio exterior limpio (240 registros válidos), filtros, selector de métrica, limitaciones de los datos, diccionario de datos, descarga de la tabla depurada en Excel y la pestaña *Datos internos*. |
 | **Catálogo** | admin | Alta, edición y baja (desactivación) de productos y tiendas. |
 | **Usuarios** | admin | Alta de usuarios, roles, desactivación y cambio de contraseña. |
+| **Pronóstico de demanda** | admin, gerencia | Pronóstico mensual por línea, con y sin ajuste por mercado informal, y su error (MAPE) en un backtest. Datos **[Simulado]**. |
+| **Prototipo de escenario** | admin, gerencia | Controles de tipo de cambio paralelo y presión informal que mueven 5 indicadores frente a metas **[Supuesto]**. Necesita `seed_solucion.py`. |
+| **Entregables escritos** | admin, gerencia | Los 4 textos del caso: problemas prioritarios, síntesis ejecutiva, ficha de propuesta y recomendación ejecutiva. |
 
 ### Reglas de inventario
 
@@ -65,16 +69,18 @@ Ejemplo: apertura 50, ventas 12 → esperado 38; conteo 36 → diferencia −2 �
 `src/services/etl.py` aplica y registra en `bitacora_limpieza`:
 1. Validación de tipos y faltantes (0 faltantes).
 2. Separación de registros con socio "Mundo" (0 en la base actual).
-3. Claves repetidas (Flujo, Año, Código SA6, Socio): se conserva la primera → **240 → 230 válidas, 10 descartadas**.
+3. Claves repetidas (Flujo, Año, Código SA6, Socio): 20 filas comparten clave con valores distintos; se marcan y se conservan para validarlas con la fuente → **240 → 240 válidas, 0 descartadas**.
 4. Consistencia `Valor_USD ≈ Valor_miles_USD × 1000` y `Valor_USD_por_par ≈ Valor_USD / Cantidad_pares`.
 
-Totales válidos: importación **17.055,8 M USD**, exportación **10.605,5 M USD**.
+Totales válidos: importación **18.506,1 M USD**, exportación **10.917,3 M USD**.
+
+La pestaña *Limpieza de datos* del tablero muestra el **diccionario de datos** (tipo, significado, valores observados y faltantes de las 10 columnas) y permite **descargar la tabla depurada** en Excel (`src/services/diccionario.py`, `src/services/reportes.py`).
 
 ---
 
 ## Guion de demo (2 minutos)
 
-Antes: `python scripts/seed_demo.py` y `streamlit run app.py`. Ingrese como `admin`.
+Antes: `python scripts/seed_demo.py`, `python scripts/seed_solucion.py` y `streamlit run app.py`. Ingrese como `admin`.
 
 1. **Inicio (15 s).** Muestre los KPI y las alertas pendientes de la última semana: "el sistema detecta faltantes cada día".
 2. **Apertura (20 s).** Tienda Prado → pestaña *Toda la tienda*: los saldos ya vienen propuestos desde el cierre de ayer → *Abrir 12 productos*.
@@ -82,7 +88,7 @@ Antes: `python scripts/seed_demo.py` y `streamlit run app.py`. Ingrese como `adm
 4. **Foto (30 s).** *Cierre y conteo* → `MAN-DEP-001` → *Cámara* (o suba una foto de zapatos) → *Contar con IA*: se ven los recuadros numerados, el conteo y la confianza.
 5. **Alerta (15 s).** Corrija el conteo final a 2 menos que el esperado → *Calcular y guardar cierre* → aparece la alerta roja "Faltan 2 pares…".
 6. **Historial (10 s).** Filtre por estado *Faltante*, seleccione la fila para ver la foto y descargue el Excel.
-7. **Tablero (10 s).** 230 registros válidos, los 3 gráficos y el cambio de métrica Valor USD / Cantidad de pares, que cambia la conclusión.
+7. **Tablero (10 s).** 240 registros válidos, los 3 gráficos y el cambio de métrica Valor USD / Cantidad de pares: por categoría el orden se mantiene, pero cambia el ranking de socios (República Checa entra al top 6 por pares).
 
 ---
 
@@ -90,14 +96,17 @@ Antes: `python scripts/seed_demo.py` y `streamlit run app.py`. Ingrese como `adm
 
 ```
 app.py                 Inicio, login y navegación por rol
-pages/                 Apertura, Ventas, Cierre y conteo, Historial, Tablero, Catálogo, Usuarios
+pages/                 Apertura, Ventas, Cierre y conteo, Historial, Tablero, Catálogo, Usuarios,
+                       Pronóstico de demanda, Prototipo de escenario, Entregables escritos
 src/config.py          Rutas, constantes, permisos y tolerancia
 src/db.py, models.py   SQLite + SQLAlchemy
 src/auth.py            Login, roles y bcrypt
-src/services/          inventario (reglas), vision (YOLO-World), etl (Excel), reportes (Excel de salida)
+src/services/          inventario (reglas), vision (YOLO-World), etl (Excel), diccionario (diccionario de datos),
+                       reportes (Excel de salida: cierres y tabla depurada), pronostico
 src/ui/                estilos (CSS y tarjetas KPI), graficos (Plotly), comunes (selectores)
-scripts/               init_db.py, seed_demo.py
-tests/                 pytest: reglas de inventario y ETL
+scripts/               init_db.py, seed_demo.py, seed_solucion.py (datos [Simulado]),
+                       generar_docx_solucion.py (Word de la solución), capturar_pantallas.py
+tests/                 pytest: inventario, ETL, diccionario y tabla depurada, conteo por foto y pronóstico
 data/                  raw/ (Excel), fotos/ (evidencia), modelos/ (pesos YOLO), manaco.db
 ```
 
@@ -109,7 +118,7 @@ Pruebas: `python -m pytest`
 
 - La base de comercio exterior es de **España**, no de Bolivia; sirve como referencia internacional.
 - El **valor por par** es un valor aduanero, no el precio al consumidor.
-- La **cobertura por año es desigual** (28 a 82 registros por año).
+- La **cobertura por año es desigual** (28 a 82 registros por año), así que no se sacan tendencias entre años.
 - El conteo por foto con YOLO-World es *zero-shot*: funciona mejor con zapatos o cajas bien separados, buena luz y vista frontal. Con pilas apretadas conviene contar cajas o corregir a mano.
 - Es un sistema local de un solo servidor con SQLite; no está pensado para muchos usuarios simultáneos en red.
 
@@ -125,7 +134,7 @@ Pruebas: `python -m pytest`
 
 1. Entre a [share.streamlit.io](https://share.streamlit.io) con su cuenta de GitHub → **Create app**.
 2. Repositorio `edisonayala000-netizen/manaco-data`, rama `main`, archivo `app.py`; en *Advanced settings* elija **Python 3.11** → **Deploy**.
-3. La primera vez que se abre, si la base no tiene usuarios, `app.py` ejecuta solo `init_db.py` y `seed_demo.py` (Excel, usuario `admin` y datos de demo).
+3. La primera vez que se abre, si la base no tiene usuarios, `app.py` ejecuta solo `init_db.py`, `seed_demo.py` y `seed_solucion.py` (Excel, usuario `admin`, datos de demo y datos [Simulado]).
 
 `packages.txt` instala las librerías del sistema que necesita OpenCV, y `requirements.txt` usa PyTorch para CPU. En el plan gratuito los datos se reinician cuando la app se reinicia, y el conteo por foto puede no caber en la memoria disponible; en ese caso el sistema avisa y deja el conteo manual.
 

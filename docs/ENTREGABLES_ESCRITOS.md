@@ -10,58 +10,76 @@ trazables y no inventadas.
 
 ## Estación 1 — Problemas prioritarios
 
-| N.º | Problema | Justificación | Datos necesarios |
+Cinco problemas que cubren las seis áreas que pide el caso, ordenados por impacto.
+
+| N.º | Problema y área | Justificación | Datos necesarios |
 | --- | --- | --- | --- |
-| 1 | **Inventario sin control diario en tienda** (diferencias entre lo esperado y lo contado) | El sistema ya detectó un caso real validado: *"Faltan 2 pares de MAN-DEP-001 en Tienda Prado (esperado 38, contado 36)"*. Sin una alerta diaria, esta merma solo se nota en el cierre contable mensual, cuando ya es tarde para investigar la causa. | Saldo inicial por tienda/producto, ventas del día, conteo físico de cierre (foto o manual), histórico de diferencias por tienda (página Historial, tabla `cierres`). |
-| 2 | **Datos de mercado externo y ventas internas desintegrados** | Manaco no tenía forma de cruzar su desempeño comercial con el comportamiento del mercado de calzado. El cruce ya hecho muestra que la categoría **Deportivo importa ~3 veces lo que exporta**: una señal de dependencia estructural de oferta externa que antes era invisible. | Base de comercio exterior limpia (230 de 240 registros válidos), catálogo de productos con su código SA6, ventas internas por categoría (página Tablero de mercado, tabla `comercio_exterior`). |
-| 3 | **Presión creciente del mercado informal / contrabando sobre la demanda formal** | La escasez de dólares eleva el tipo de cambio paralelo, lo que abarata el calzado informal frente al de Manaco (descuento típico del 5-20% sobre el precio formal). El pronóstico sin ajustar sobreestima la demanda real porque ignora esta fuga de clientes hacia el mercado informal. | Historial de ventas formales por línea, tipo de cambio paralelo, precio de competidores informales, sensibilidad de cada línea al mercado informal (página Pronóstico de demanda). |
-| 4 | **Producción sin cobertura ni calidad garantizadas frente a la demanda proyectada** | El prototipo de escenario puede mostrar una tasa de defectos por encima de la meta (3%) y una cobertura de producción por debajo del 100% de la demanda proyectada, sin que exista hoy un proceso formal que lo vigile mes a mes. | Lotes de producción mensual por línea, incidencias de calidad por lote, metas oficiales de gerencia de producción (página Prototipo de escenario, tablas `fact_produccion` y `fact_calidad`). |
-| 5 | **Calidad de la ingesta de datos que llega de las sucursales** | El indicador "rechazo en ingesta" (meta ≤3%) existe porque los archivos que suben las sucursales traen errores; si no se corrigen a tiempo, distorsionan cualquier reporte que gerencia use para decidir. | Bitácora de ingesta por sucursal (filas leídas, corregidas, rechazadas), reglas de validación aplicadas, archivo fuente de cada carga (página Prototipo de escenario, tabla `log_ingesta`). |
+| 1 | **Inventario sin control diario en tienda** · *Producción, inventarios y logística* | Sin conteo diario, una diferencia de stock solo se nota en el cierre contable mensual, cuando ya no se puede rastrear su causa. Ejemplo de la demo: *"Faltan 2 pares de MAN-DEP-001 en Tienda Prado (esperado 38, contado 36)"*. | Saldo inicial, ventas del día y conteo de cierre por tienda y producto; histórico de diferencias (Historial, `cierres`). |
+| 2 | **Presión de la oferta importada y del mercado informal** · *Competitividad y mercado* | **Dato:** Deportivo importa 2,97 veces lo que exporta (Excel, 240 filas válidas). **Hipótesis a validar:** el calzado informal entra sin pagar aranceles ni impuestos, compite por precio y le quita ventas a Manaco. | Ventas reales por línea y mes, precios de la competencia formal e informal, tipo de cambio paralelo (Pronóstico de demanda, `ref_mercado_local`). |
+| 3 | **Rentabilidad por línea sin medir** · *Rentabilidad y estructura de costos* | En el mercado de referencia el Cuero vale casi el doble por par (~41–45 USD frente a ~25), pero Manaco no sabe qué línea le deja más utilidad: no integra costos de producción, defectos, devoluciones, almacenamiento ni distribución. | Costo real por lote, costo de defectos y devoluciones, gastos de almacenamiento y distribución, precio real con descuentos (`fact_produccion`, `fact_calidad`). |
+| 4 | **Cliente desconocido** · *Clientes, segmentación y marketing* | El sistema registra qué se vende, dónde y cuándo, pero no quién compra. Sin eso no se puede segmentar ni medir el canal digital que menciona el caso. | Tipo de cliente (edad, ciudad, segmento), frecuencia y monto de compra, canal (tienda o digital), motivos de devolución. |
+| 5 | **Datos dispersos y sin responsables claros** · *Gestión organizacional y calidad de datos* | Mercado, ventas, inventario y calidad están separados, y los archivos de las sucursales llegan con errores. Si nadie responde por corregirlos, cualquier reporte de gerencia queda distorsionado. | Bitácora de ingesta por sucursal (filas leídas, corregidas y rechazadas), reglas de validación y un responsable por fuente de datos (`log_ingesta`, `bitacora_limpieza`). |
+
+**Por qué este orden:** el 1 afecta a diario y ya tiene solución en marcha; el 2 y
+el 3 definen en qué línea competir; el 4 y el 5 son la condición para que las
+decisiones siguientes tengan datos confiables.
+
+**Qué responde cada fuente:** el Excel de comercio exterior responde comparaciones
+de categorías, socios y valor por par en un mercado de referencia; **no** responde
+costos, márgenes, clientes ni ventas de Manaco. Eso exige datos internos.
 
 ---
 
 ## Estación 2 — Diagnóstico de datos: síntesis ejecutiva
 
+**Tabla depurada y diccionario de datos:** están en *Tablero de mercado → Limpieza de
+datos*, que muestra el diccionario de las 10 columnas y permite descargar la tabla
+depurada en Excel (240 filas, con la marca de clave repetida y la bitácora de limpieza).
+
 ### 3 hallazgos
 
-1. **El control de inventario pasa de reactivo a preventivo.** El sistema compara
-   automáticamente lo contado contra lo esperado (saldo inicial − vendido) y genera
-   una alerta inmediata y legible (*"Faltan 2 pares de MAN-DEP-001…"*), algo que antes
-   solo se descubría al cierre contable, cuando ya no se puede rastrear el origen de
-   la diferencia.
-2. **La categoría Deportivo es la más expuesta a la oferta externa.** Al cruzar las
-   230 filas válidas del Excel de comercio exterior con las ventas internas, Deportivo
-   importa alrededor de **3 veces lo que exporta**, y es también la línea con mayor
-   sensibilidad estimada al mercado informal (0,35 frente a 0,20 de Caucho y cuero y
-   0,10 de Cuero). Es la línea donde una decisión de precio o de producción tiene más
-   impacto.
-3. **Ajustar el pronóstico por presión informal reduce el error, no lo aumenta.** El
-   backtest del módulo de pronóstico muestra que el MAPE del pronóstico *ajustado*
-   por mercado informal es menor o igual que el del pronóstico *sin ajustar*, lo que
-   confirma que ignorar la competencia informal no es una simplificación inocente:
-   sobreestima sistemáticamente la demanda formal esperada.
+Los tres salen de la base de comercio exterior limpia: 240 filas válidas, de las
+cuales 20 comparten clave con otra fila y se marcan para validarlas con la fuente.
+
+1. **Deportivo es la categoría más dependiente de la importación.** Importa
+   **2,97 veces** lo que exporta en valor y **2,91 veces** en pares. Como la
+   proporción casi no cambia con la métrica, la conclusión es sólida: en esta línea
+   la oferta importada domina el mercado de referencia.
+2. **El calzado de cuero es un nicho de mayor valor por par.** Su valor aduanero
+   ronda los **41–45 USD por par**, frente a unos **25 USD** de Deportivo y de Caucho
+   y cuero. En volumen es pequeño (7,7 millones de pares importados frente a 498
+   millones de Caucho y cuero), pero cada par vale casi el doble: es la señal más
+   clara de dónde diferenciarse por calidad y no por precio.
+3. **Medir por valor o por cantidad cambia quiénes son los proveedores relevantes.**
+   Por categoría, el orden es el mismo con ambas métricas. Por socio, en cambio,
+   **República Checa entra al top 6 de proveedores por pares, pero no por valor**,
+   porque su calzado es el más barato de la base (unos 9 USD por par). Si solo se
+   mira el valor, se pierden de vista los proveedores que compiten por precio.
 
 ### 2 limitaciones
 
-1. **La referencia de mercado es española, no boliviana.** La base de comercio
-   exterior usada en el tablero reporta a España como país; sirve como referencia
-   internacional de categorías y proporciones (import. vs. export.), pero el valor
-   por par es un **valor aduanero**, no el precio al consumidor, y no debe leerse
-   como "el precio del mercado boliviano".
-2. **El pronóstico y el prototipo de escenario corren sobre datos simulados.** El
-   sistema real solo tiene ~30 días de ventas registradas: insuficiente para medir
-   estacionalidad, tendencia o fijar metas con rigor estadístico. El historial de 24
-   meses, la producción, la calidad y el mercado local están explícitamente
-   etiquetados **[Simulado]** o **[Supuesto]** en el código (`pronostico.py`,
-   `seed_solucion.py`) y deben reemplazarse por datos reales antes de usarlos para
-   comprometer presupuesto o producción.
+1. **La referencia es española y el valor es aduanero.** Sirve para comparar
+   categorías y proporciones, pero no representa el mercado boliviano ni el precio
+   al consumidor, que incluye aranceles, transporte y margen del comerciante.
+2. **La cobertura por año es desigual.** Hay 28 registros en 2020 y 82 en
+   2024, así que cualquier "crecimiento" entre años refleja la cantidad de
+   registros, no el mercado. Por eso no se sacan tendencias temporales.
 
 ### 1 pregunta estratégica
 
-> ¿Qué mezcla de producción por línea debe planificar Manaco para los próximos 6
-> meses si la presión del mercado informal sigue la trayectoria actual del tipo de
-> cambio paralelo, y qué tanto de la brecha de precio frente a ese mercado informal
-> está dispuesta a absorber sin sacrificar margen?
+> Si Deportivo es la línea con más presión importada y Cuero la de mayor valor por
+> par, ¿debe Manaco defender volumen en Deportivo o concentrar su diferenciación en
+> Cuero? ¿Qué margen real por línea necesitaría ver para decidirlo?
+
+### Respuestas a las 5 preguntas del caso
+
+| Pregunta del caso | Respuesta con los datos |
+| --- | --- |
+| ¿Qué datos internos debería recopilar Manaco? | Ventas por producto, tienda y día (ya las registra el sistema); costos reales por lote; defectos y devoluciones con su motivo; datos del cliente (segmento, ciudad y canal); fechas de entrega; inventario por almacén; y precios reales con descuentos. |
+| ¿Qué hipótesis sobre competencia, abastecimiento o diferenciación podría investigar? | Competencia: Deportivo depende de la importación (importa 2,97 veces lo que exporta), así que es la línea más expuesta al calzado importado barato. Abastecimiento: hay proveedores muy baratos por par (República Checa, unos 9 USD) que sirven de referencia de costo. Diferenciación: el Cuero vale casi el doble por par, lo que sugiere un nicho de calidad. |
+| ¿Cómo varía el valor por par y por qué no es el precio al consumidor? | Va de 8 a 119 USD por registro; la mediana es de unos 47 USD en Cuero y unos 27 USD en Deportivo y en Caucho y cuero. Es un valor aduanero: no incluye aranceles, impuestos, transporte ni el margen del comerciante, así que el precio en tienda es mayor. |
+| ¿Qué países son proveedores y destinos relevantes? | Proveedores, por valor: Grecia, Países Bajos, Vietnam, Irlanda, Turquía y Rumanía. Destinos, por valor: Indonesia, Vietnam, Eslovenia, Irlanda, Grecia y Austria. Son relevantes dentro de los 30 socios del archivo, no del comercio mundial. |
+| ¿Qué categorías tienen mayor valor? ¿Cambia al comparar con la cantidad? | Caucho y cuero lidera en ambos flujos (11.709,7 M USD importados y 8.514,2 M USD exportados), seguida de Deportivo; Cuero es muy pequeña. Por categoría el orden no cambia con la cantidad de pares; por socio sí: República Checa entra al top 6 de proveedores por pares, pero no por valor. |
 
 ---
 
@@ -69,50 +87,92 @@ trazables y no inventadas.
 
 | Campo | Contenido |
 | --- | --- |
-| **Problema** | Manaco pierde control del inventario diario en tienda y no integra sus datos internos con el comportamiento del mercado externo, lo que le impide anticipar y responder a la presión creciente del mercado informal sobre su demanda. |
-| **Solución** | **Manaco Data**: (1) control diario de apertura–venta–cierre con alerta automática de faltante/sobrante, apoyado en conteo por foto con IA (YOLO-World); (2) tablero de mercado que cruza comercio exterior con ventas internas por categoría; (3) módulo de pronóstico de demanda ajustado por presión del mercado informal, con un prototipo de escenario para simular tipo de cambio y presión informal antes de decidir. |
-| **Objetivo 1 (SMART)** | Reducir a **menos del 5%** la proporción de cierres con diferencia (faltante o sobrante) por tienda en los 3 meses siguientes a la puesta en marcha. **KPI:** % de cierres `Correcto` (página Historial / dona de Inicio). |
-| **Objetivo 2 (SMART)** | Lograr que el **100% de las tiendas** registren apertura, venta y cierre todos los días durante el primer mes de uso (0 cierres sin apertura, 0 aperturas sin cierre al final del día). **KPI:** cierres hechos / aperturas del día (tarjeta KPI de Inicio). |
-| **Objetivo 3 (SMART)** | Mantener el **MAPE del pronóstico ajustado por mercado informal por debajo del MAPE sin ajustar** en cada línea de producto, revisado mes a mes, para confirmar que el ajuste sigue mejorando la planificación de compras y producción. **KPI:** MAPE base vs. MAPE ajustado (página Pronóstico de demanda, backtest). |
-| **Responsables** | **Gerencia comercial:** define metas de venta y revisa alertas pendientes (rol `gerencia`). **Encargado de tienda:** registra apertura, ventas y cierre diario (rol `encargado`). **Administrador / TI:** mantiene catálogo, usuarios, carga del Excel de comercio exterior y la migración futura del sistema a producción (rol `administrador`). |
-| **Riesgos** | (1) Que el personal de tienda no registre apertura/cierre con disciplina diaria, ya que es el dato de entrada del que depende todo lo demás. (2) Que el conteo por foto falle con zapatos amontonados o poca luz, obligando a un respaldo manual constante. (3) Que se tomen decisiones de producción o precio con los datos **[Simulado]** del pronóstico/escenario sin antes validarlos contra ventas reales. (4) Que el sistema, al ser local con SQLite y un solo servidor, no escale a toda la red de tiendas sin una migración previa a PostgreSQL. |
+| **Problema** | Manaco no controla a diario su inventario en tienda ni mide la rentabilidad real de cada línea, y no cruza esos datos con el mercado. Así no puede decidir en qué línea competir frente a la oferta importada e informal. |
+| **Solución analítica** | **Manaco Data**: (1) control diario de apertura, venta y cierre con alerta automática de faltante o sobrante, apoyado en conteo por foto con IA; (2) tablero de mercado que cruza comercio exterior con ventas internas por código SA6; (3) pronóstico de demanda y prototipo de escenario, que hoy demuestran el método con datos **[Simulado]** y se recalibran con ventas reales. **Decisión que apoya:** qué línea priorizar y cuánto producir. |
+| **Datos que necesita** | Aperturas, ventas y cierres diarios (ya los registra); comercio exterior (ya cargado y limpio); costos por lote, defectos y devoluciones (hoy simulados, por reemplazar). |
+| **Objetivo 1 — Inventario (SMART, 3 años)** | Bajar los cierres con diferencia a menos del **10%** al cierre del año 1, del **5%** al año 2 y del **3%** al año 3, en todas las tiendas. **KPI:** % de cierres `Correcto` por tienda (Historial, Inicio). |
+| **Objetivo 2 — Datos reales (SMART, 3 años)** | **100%** de las tiendas con registro diario completo desde el mes 3; al año 2, **24 meses** de historia real que reemplacen los datos [Simulado]; al año 3, pronóstico por línea con error (MAPE) **menor al 15%** sobre ventas reales. **KPI:** % de tiendas con registro completo, meses de historia real y MAPE. |
+| **Objetivo 3 — Calidad (SMART, 3 años)** | Bajar la tasa de defectos a **3%** o menos en todos los lotes al año 1, **2,5%** al año 2 y **2%** al año 3, y reducir a la mitad las devoluciones por costura y pegado de suela. **KPI:** tasa de defectos y devoluciones por lote (`fact_calidad`). |
+| **Línea base** | Se mide en el primer mes de uso; las metas se recalibran con ese dato real. |
+| **Responsables y coordinación** | **Gerencia General:** patrocina y revisa los 3 KPI en un comité mensual. **Gerencia Comercial:** metas de venta y atención de alertas (rol `gerencia`). **Gerencia de Producción:** defectos y cobertura. **Encargados de tienda:** registro diario (rol `encargado`). **Administración/TI:** sistema, catálogo, carga de datos y migración a PostgreSQL (rol `administrador`). |
+| **Riesgo 1 y mitigación** | *Registro diario incompleto.* El cierre de inventario pasa a ser parte del cierre de caja, Inicio muestra los cierres pendientes y gerencia recibe un reporte semanal por tienda. |
+| **Riesgo 2 y mitigación** | *Decidir con datos simulados.* Todo dato simulado lleva la etiqueta [Simulado], no se compromete presupuesto hasta tener 12 meses reales y las metas se recalibran con la línea base real. |
+| **Otros riesgos** | El conteo por foto falla con poca luz o zapatos amontonados (respaldo: conteo manual); SQLite no escala a toda la red (migración a PostgreSQL en el año 2). |
+| **Viabilidad** | El sistema ya funciona en una computadora local. El costo principal es el tiempo del personal para registrar a diario y, en el año 2, la migración a un servidor con PostgreSQL. |
 
 ---
 
 ## Estación 4 — Decisión financiera/mercado: recomendación ejecutiva
 
+### Lectura de los indicadores
+
+- **Producción [Simulado]:** lotes mensuales calibrados con la demanda base de cada línea (±15%).
+- **Defectos [Simulado]:** entre 1% y 5% por lote. El promedio queda cerca de la
+  meta de 3%, así que cerca de la mitad de los lotes la supera. Motivos: costura,
+  pegado de suela, talla y manchas.
+- **Devoluciones [Simulado]:** entre el 20% y el 50% de los pares defectuosos
+  llegan al cliente y vuelven. Son los defectos que más dañan la marca.
+- **Entregas: no hay datos.** El sistema no registra fechas de despacho ni de
+  entrega, así que no se puede medir cumplimiento ni quiebres de stock por demora.
+- **Ventas [Simulado]:** 30 días de demo en 3 tiendas. Alcanzan para el control
+  diario, no para ver tendencias.
+- **Margen de catálogo [Supuesto, precios de la demo]:** cerca del 45% en las tres
+  líneas, pero por par el Cuero deja unos 239 Bs, frente a unos 155 Bs de
+  Deportivo y de Caucho y cuero.
+
+### Qué falta para estimar costos y rentabilidad
+
+Costos reales por lote (insumos, mano de obra, energía); costos fijos de planta y
+tiendas; costo de cada devolución (flete, reproceso, reposición); gastos de
+almacenamiento y distribución por ciudad; precio real de venta con descuentos; y
+fechas de entrega prometidas frente a reales.
+
 ### Las 2 alternativas comparadas
 
-| | **Alternativa A — Competir por precio** | **Alternativa B — Diferenciar por calidad y disponibilidad** |
+| | **Alternativa A — Competir por precio** | **Alternativa B — Diferenciar por calidad en Cuero** |
 | --- | --- | --- |
-| Acción | Bajar el precio de venta para cerrar la brecha frente al mercado informal y recuperar volumen. | Mantener el precio; invertir en bajar la tasa de defectos y asegurar que la producción cubra el 100% de la demanda proyectada. |
-| Palanca que usa | El indicador **"Brecha vs. mercado informal"** del Prototipo de escenario (meta ≤20%). | Los indicadores **"Tasa de defectos"** (meta ≤3%) y **"Cobertura de producción"** (meta ≥100%) del mismo prototipo. |
-| Qué tan controlable es | Baja: la brecha depende del tipo de cambio paralelo, que Manaco no controla, y el mercado informal puede volver a abaratarse si el dólar sube más. | Alta: defectos y cobertura dependen de procesos internos de producción que Manaco sí puede gestionar directamente. |
-| Riesgo principal | Guerra de precios con un competidor sin los costos formales (impuestos, planilla) de Manaco: el margen se erosiona más rápido de lo que se recupera volumen. | Que la diferenciación no sea percibida si no se comunica (empaque, garantía, puntos de venta) junto con el esfuerzo de calidad. |
+| Acción | Bajar el precio para cerrar la brecha frente al mercado informal. | Mantener el precio; control de calidad por lote y garantía en la línea Cuero. |
+| Beneficio esperado | Recuperar volumen frente al calzado informal. | Menos devoluciones y reprocesos; marca más fuerte en la línea de mayor valor por par. |
+| Costo | Con un margen cercano al 45%, bajar el precio 10% obliga a vender **~29% más pares** solo para mantener la utilidad bruta. | Inspección por lote, capacitación en costura y pegado, y stock de tallas centrales. Se cuantifica con costos reales. |
+| Indicador | Brecha frente al mercado informal (meta ≤20%). | Tasa de defectos (≤3%) y devoluciones de Cuero. |
+| Control | Bajo: la brecha depende del tipo de cambio paralelo. | Alto: son procesos internos. |
+| Riesgo principal | Guerra de precios contra un competidor sin costos formales. | Que la garantía no se perciba si no se comunica. |
 
-### Acción comercial recomendada
+**Cálculo del costo de A:** con precio 100 y costo 55, el margen es 45. Con precio
+90, el margen baja a 35. Para mantener la misma utilidad bruta hay que vender
+45 ÷ 35 = 1,29 veces más pares.
 
-**Alternativa B — Diferenciar por calidad y disponibilidad.** Cerrar la brecha de
-precio frente al mercado informal es una carrera que Manaco no gana con los datos
-que hoy tiene: la brecha se mueve con el tipo de cambio paralelo (fuera de su
-control) y el competidor informal no carga los mismos costos formales, por lo que
-una baja de precio sostenida comprime el margen sin garantizar que el mercado
-informal no vuelva a abaratarse. En cambio, la tasa de defectos y la cobertura de
-producción son palancas **internas** que el Prototipo de escenario ya mide mes a
-mes: invertir ahí protege la marca (menos devoluciones, menos quiebres de stock)
-sin entrar en una guerra de precios que Manaco no puede sostener.
+### Recomendación: Alternativa B
+
+Cerrar la brecha de precio es una carrera que Manaco no controla: depende del tipo
+de cambio paralelo y el competidor informal no paga impuestos ni planilla. Además,
+la aritmética es exigente: un 10% menos de precio exige casi un 30% más de volumen
+solo para quedar igual. La calidad, en cambio, es una palanca interna, y el Cuero
+es la línea donde el mercado paga más por par.
+
+### Segmento y acción comercial
+
+- **Segmento [Supuesto]:** adultos que trabajan en oficinas o servicios y compran
+  calzado de cuero de vestir en las tiendas de La Paz, Cochabamba y Santa Cruz.
+- **Por qué:** el Cuero tiene el mayor valor por par del mercado de referencia
+  (~41–45 USD), la menor presión importada (importa 1,52 veces lo que exporta,
+  frente a 2,97 veces de Deportivo) y el mayor margen por par del catálogo. Falta
+  validarlo con datos de clientes.
+- **Acción:** lanzar *Cuero garantizado*: garantía de 6 meses en costura y suela,
+  control de calidad de cada lote antes de enviarlo a tienda y stock asegurado de
+  tallas centrales en las 3 tiendas, comunicado en tienda y en canales digitales.
 
 ### 3 indicadores de seguimiento
 
-1. **Cobertura de producción vs. demanda proyectada** (meta ≥100%) — Prototipo de escenario.
-2. **Tasa de defectos de producción** (meta ≤3%) — Prototipo de escenario.
-3. **% de cierres de inventario correctos por tienda** (sin faltante ni sobrante) — Historial / Inicio.
+1. **Tasa de defectos y devoluciones de la línea Cuero** (meta ≤3% de defectos) — `fact_calidad`.
+2. **Ventas de la línea Cuero** en pares y Bs frente a los 3 meses previos — Ventas / Tablero.
+3. **% de cierres de inventario correctos por tienda** — Historial / Inicio.
 
 ---
 
-*Nota: las cifras de este documento provienen de los datos reales ya limpios del
-sistema (comercio exterior, inventario) o de los módulos de pronóstico y escenario,
-cuyos datos de producción, calidad y mercado local están explícitamente etiquetados
-**[Simulado]** o **[Supuesto]** en el código. Antes de usar los objetivos y
+*Nota: las cifras de comercio exterior son reales y ya están limpias en el sistema.
+Las de ventas e inventario vienen de la demo, y las de producción, calidad, mercado
+local y precios de catálogo están explícitamente etiquetadas **[Simulado]** o
+**[Supuesto]**. Antes de usar los objetivos y
 recomendaciones de este documento para comprometer presupuesto real, reemplace esos
 datos simulados por historia real de Manaco (ver "Próximos pasos" en el README).*

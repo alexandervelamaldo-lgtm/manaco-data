@@ -32,6 +32,8 @@ SENSIBILIDAD_INFORMAL: dict[str, float] = {
 
 #: Nivel base de demanda mensual (pares) por línea. [Supuesto]
 _NIVEL_BASE: dict[str, float] = {"Deportivo": 1800, "Caucho y cuero": 1200, "Cuero": 700}
+#: Alias público: ``seed_solucion.py`` calibra la producción simulada con este nivel.
+NIVEL_BASE = _NIVEL_BASE
 #: Meses de pico estacional: inicio de clases (feb-mar) y fiestas de fin de año.
 _MESES_PICO: tuple[int, ...] = (2, 3, 12)
 _SEMILLA = 2026
@@ -154,3 +156,21 @@ def _mape(reales: pd.Series, predichos: pd.Series) -> float:
         return 0.0
     errores = (reales[mascara] - predichos[mascara]).abs() / reales[mascara].abs()
     return float(errores.mean() * 100)
+
+
+def brecha_precio(precio_linea: float, precio_promedio: float, precio_informal_promedio: float,
+                  tipo_cambio: float, tipo_cambio_actual: float) -> float:
+    """Brecha (%) entre el precio de una línea de Manaco y el del calzado informal equivalente.
+
+    ``ref_mercado_local`` guarda un solo precio informal para todo el mercado, así que se usa
+    como **descuento informal promedio** (precio informal ÷ precio promedio de Manaco) y se
+    aplica al precio de cada línea, para comparar calzado equivalente. [Supuesto]: el
+    descuento es igual en todas las líneas y el precio informal sube en bolivianos en la
+    misma proporción que el tipo de cambio paralelo, porque ese calzado se compra en dólares.
+    """
+    if not (precio_linea > 0 and precio_promedio > 0 and precio_informal_promedio > 0
+            and tipo_cambio > 0 and tipo_cambio_actual > 0):
+        return 0.0
+    descuento_informal = precio_informal_promedio / precio_promedio
+    precio_informal_linea = precio_linea * descuento_informal * (tipo_cambio / tipo_cambio_actual)
+    return (precio_linea - precio_informal_linea) / precio_informal_linea * 100

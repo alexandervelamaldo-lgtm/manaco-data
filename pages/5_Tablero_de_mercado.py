@@ -6,10 +6,12 @@ import pandas as pd
 import streamlit as st
 
 from src.auth import proteger_pagina
-from src.config import SA6_A_CATEGORIA
+from src.config import CLAVE_REGISTRO, SA6_A_CATEGORIA
 from src.db import obtener_sesion
+from src.services import diccionario as dic
 from src.services import etl
 from src.services import inventario as inv
+from src.services import reportes
 from src.ui import graficos
 from src.ui.estilos import (
     ICONOS, banner_kpis, bs, encabezado, estado_vacio, flujo_filas, linea_tiempo, nota, num, seccion, tarjeta,
@@ -146,6 +148,8 @@ with tab_internos:
 # --- Limpieza ----------------------------------------------------------------
 with tab_limpieza:
     flujo_filas(len(todos), len(validos), len(todos) - len(validos))
+    excel = todos.rename(columns={v: k for k, v in etl.MAPA_COLUMNAS.items()})
+    excel["clave_repetida"] = dic.marcar_claves_repetidas(excel, CLAVE_REGISTRO)
     izq, der = st.columns([1.1, 1], gap="medium")
     with izq:
         seccion("Reglas aplicadas", "Cada regla queda registrada en la bitácora de limpieza")
@@ -160,17 +164,41 @@ with tab_limpieza:
             hitos.append((f"{r['Regla']} · {num(int(r['Filas afectadas']))} filas", r["Detalle"], tipo))
         linea_tiempo(hitos)
     with der:
-        seccion("Registros descartados", "Claves repetidas: se conserva la primera aparición")
-        descartados = todos[~todos["registro_valido"]]
-        with tarjeta("descartados"):
-            if descartados.empty:
-                estado_vacio("No se descartó ningún registro.", "verified")
+        seccion("Claves repetidas", "Comparten flujo, año, código SA6 y socio, con valores distintos: se marcan y se conservan")
+        repetidas = excel[excel["clave_repetida"]].sort_values(CLAVE_REGISTRO)
+        with tarjeta("repetidas"):
+            if repetidas.empty:
+                estado_vacio("No hay claves repetidas.", "verified")
             else:
                 st.dataframe(
-                    descartados[["flujo_comercial", "anio", "categoria", "socio_comercial", "valor_usd"]]
-                    .rename(columns={"flujo_comercial": "Flujo", "anio": "Año", "categoria": "Categoría",
-                                     "socio_comercial": "Socio", "valor_usd": "Valor USD"}),
-                    hide_index=True, width="stretch",
+                    repetidas[["Flujo_comercial", "Año", "Código_SA6", "Socio_comercial", "Cantidad_pares",
+                               "Valor_USD"]]
+                    .rename(columns={"Flujo_comercial": "Flujo", "Código_SA6": "SA6", "Socio_comercial": "Socio",
+                                     "Cantidad_pares": "Pares", "Valor_USD": "Valor USD"}),
+                    hide_index=True, width="stretch", height=320,
                     column_config={"Año": st.column_config.NumberColumn(format="%d"),
+                                   "SA6": st.column_config.NumberColumn(format="%d"),
+                                   "Pares": st.column_config.NumberColumn(format="localized"),
                                    "Valor USD": st.column_config.NumberColumn(format="localized")},
                 )
+                st.caption("Pueden ser registros parciales de la fuente: se validan con la fuente original "
+                           "en lugar de descartarlos a ciegas.")
+
+    seccion("Diccionario de datos", "Las 10 columnas del Excel: tipo, significado, valores observados y faltantes")
+    diccionario = dic.construir_diccionario(excel)
+    with tarjeta("diccionario"):
+        st.dataframe(
+            diccionario, hide_index=True, width="stretch",
+            column_config={"Descripción": st.column_config.TextColumn(width="large"),
+                           "Faltantes": st.column_config.NumberColumn(format="%d")},
+        )
+    with tarjeta("descarga", "Tabla depurada", icono="download"):
+        st.markdown(f"Excel con **{num(len(validos))} registros válidos** (con la marca de clave repetida), las "
+                    "claves repetidas, el diccionario de datos y la bitácora de limpieza.")
+        st.download_button(
+            "Descargar tabla depurada (Excel)",
+            data=reportes.exportar_comercio_excel(excel, diccionario, bitacora),
+            file_name="comercio_exterior_depurado.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            icon=":material/download:", type="primary",
+        )

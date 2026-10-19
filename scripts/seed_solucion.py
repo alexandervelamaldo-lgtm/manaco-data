@@ -24,6 +24,7 @@ from src.db import crear_tablas, obtener_sesion  # noqa: E402
 from src.models import (  # noqa: E402
     DimFecha, FactCalidad, FactProduccion, LogIngesta, Producto, RefMercadoLocal,
 )
+from src.services.pronostico import NIVEL_BASE  # noqa: E402
 
 MESES_HISTORIA = 24
 SEMILLA = 2026
@@ -72,10 +73,14 @@ def _poblar_produccion_y_calidad(
     s.execute(delete(FactProduccion))
     produccion, calidad = [], []
     mes, n_lote = date(inicio.year, inicio.month, 1), 0
+    por_linea = {cat: sum(1 for p in productos if p.categoria == cat) for cat in {p.categoria for p in productos}}
     while mes <= fin:
         for p in productos:
             n_lote += 1
-            pares = rnd.randint(80, 220)
+            # Supuesto: cada línea produce cerca de su demanda base mensual (±15%), repartida entre sus
+            # productos, para que la cobertura de producción del Prototipo de escenario sea comparable.
+            base = NIVEL_BASE.get(p.categoria, 600) / por_linea[p.categoria]
+            pares = max(20, round(base * rnd.uniform(0.85, 1.15)))
             lote = f"L{mes:%Y%m}-{n_lote:04d}"
             # Supuesto: el costo unitario (Producto.costo_bs) se reparte ~65% insumos / ~35% mano de obra.
             produccion.append(FactProduccion(

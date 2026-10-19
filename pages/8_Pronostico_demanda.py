@@ -67,6 +67,7 @@ nota(
     "para esta línea) es una estimación del equipo, no un dato medido.</li>"
     "<li>El <b>pronóstico sin ajustar</b> usa un promedio móvil estacional sobre las ventas observadas; el "
     "<b>ajustado</b> reconstruye la demanda implícita (ventas ÷ efecto informal) y le vuelve a aplicar la "
-    "presión informal proyectada. El MAPE del backtest confirma que el ajuste no empeora el error.</li></ul>",
+    "presión informal proyectada. Como el historial simulado ya incluye el efecto informal, el backtest "
+    "demuestra el método, pero no mide la magnitud real del contrabando: eso se valida con ventas reales.</li></ul>",
     icono="science",
 )

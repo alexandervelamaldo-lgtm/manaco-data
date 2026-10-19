@@ -236,15 +236,17 @@ Funciona como un **asistente en 3 pasos**, con un indicador arriba: Seleccionar 
 - Tabla **Cruce**: une por categoría (código SA6) los pares, las ventas en Bs y el precio medio de Manaco con la importación de España y la mediana del mercado en US$ por par.
 
 **Pestaña "Limpieza de datos":**
-- Flujo **240 filas → 230 válidas / 10 descartadas**.
+- Flujo **240 filas → 240 válidas / 0 descartadas**.
 - Línea de tiempo de las reglas aplicadas, leída de `bitacora_limpieza`.
-- Tabla de los registros descartados.
+- Tabla de las **20 filas con clave repetida**: comparten flujo, año, código SA6 y socio, pero tienen valores distintos. Se marcan y se conservan.
+- **Diccionario de datos**: las 10 columnas del Excel con su tipo, significado, valores observados y faltantes (`src/services/diccionario.py`).
+- Botón **Descargar tabla depurada (Excel)**: hojas *Tabla depurada* (240 filas con la marca de clave repetida), *Claves repetidas*, *Diccionario* y *Bitácora*.
 
 **Qué se guarda:** nada; esta página es solo de lectura. Los datos se cargan con `scripts/init_db.py`.
 
 **No implementado:** subir otro Excel desde la página. Para recargar el Excel hay que ejecutar `python scripts/init_db.py`.
 
-**Frase para la defensa:** *"Cambiar de valor a cantidad de pares cambia la conclusión, por eso el tablero deja elegir la métrica, y además avisamos las limitaciones de los datos para no sacar conclusiones falsas."*
+**Frase para la defensa:** *"Por categoría, el orden es el mismo en valor y en pares; pero por socio cambia: República Checa entra al top 6 de proveedores por pares y no por valor, porque vende el calzado más barato. Por eso el tablero deja elegir la métrica, y además avisamos las limitaciones de los datos."*
 
 ### 2.9 Catálogo (solo administrador)
 
@@ -307,7 +309,7 @@ Funciona como un **asistente en 3 pasos**, con un indicador arriba: Seleccionar 
 
 **Qué se guarda:** nada; esta página es solo de cálculo. No necesita `seed_solucion.py`.
 
-**Frase para la defensa:** *"El pronóstico normal sobreestima la demanda porque ignora el contrabando. El ajustado lo corrige, y el MAPE muestra que el ajuste no empeora el error. Los datos son simulados, porque no hay 24 meses de historia real."*
+**Frase para la defensa:** *"Mostramos el método: si el contrabando reduce las ventas, un pronóstico que lo ignora sobreestima la demanda. Los datos son simulados, porque no hay 24 meses de historia real, así que el MAPE demuestra que el método funciona, no cuánto pesa el contrabando en la realidad."*
 
 ### 2.12 Prototipo de escenario (administrador y gerencia)
 
@@ -319,6 +321,7 @@ Funciona como un **asistente en 3 pasos**, con un indicador arriba: Seleccionar 
 - **Presión del mercado informal**: de 0 a 0,95.
 
 **Qué muestra:**
+- **Cómo se calculan dos de ellos:** la *brecha* compara cada línea con calzado informal equivalente (el descuento informal promedio aplicado a su precio) y baja si sube el dólar paralelo; la *cobertura* compara la producción simulada, calibrada con la demanda base de cada línea, con la demanda proyectada del escenario.
 - **5 KPI frente a metas de referencia.** Se ponen en rojo si no cumplen la meta. Las metas son un **supuesto** del equipo, no metas oficiales:
   - ventas proyectadas, contra el promedio de los últimos 12 meses;
   - cobertura de producción (meta ≥ 100 %);
@@ -334,7 +337,7 @@ Funciona como un **asistente en 3 pasos**, con un indicador arriba: Seleccionar 
 
 **Qué se guarda:** nada; esta página lee las tablas simuladas (ver la sección 6).
 
-**Frase para la defensa:** *"Si muevo el dólar paralelo, sube la brecha frente al calzado informal; si subo la presión informal, baja la demanda proyectada. Es un prototipo de decisión con datos simulados."*
+**Frase para la defensa:** *"Si sube el dólar paralelo, el calzado informal, que se compra en dólares, se encarece en bolivianos y la brecha de Manaco se reduce; si sube la presión informal, baja la demanda proyectada y mejora la cobertura de producción. Es un prototipo de decisión con datos simulados."*
 
 ### 2.13 Entregables escritos (administrador y gerencia)
 
@@ -342,13 +345,13 @@ Funciona como un **asistente en 3 pasos**, con un indicador arriba: Seleccionar 
 
 **Pestañas:**
 1. **Problemas prioritarios:** tabla con 5 problemas, su justificación y los datos que usa el sistema.
-2. **Síntesis ejecutiva:** 3 hallazgos, 2 limitaciones y 1 pregunta estratégica.
+2. **Síntesis ejecutiva:** 3 hallazgos, 2 limitaciones, 1 pregunta estratégica y las respuestas a las 5 preguntas de referencia del caso.
 3. **Ficha de una página:** la propuesta estratégica.
 4. **Recomendación ejecutiva:** 2 alternativas comparadas y 3 indicadores de seguimiento.
 
 El mismo contenido está en `docs/ENTREGABLES_ESCRITOS.md` y en el Word `docs/Solucion_Manaco_Data.docx`, que se genera con `scripts/generar_docx_solucion.py`.
 
-**Frase para la defensa:** *"Los entregables escritos usan las mismas cifras que calcula el sistema, por ejemplo la alerta de 'Faltan 2 pares' y las 230 filas válidas del Excel."*
+**Frase para la defensa:** *"Los entregables escritos usan las mismas cifras que calcula el sistema, por ejemplo la alerta de 'Faltan 2 pares' y las 240 filas válidas del Excel."*
 
 ---
 
@@ -465,15 +468,15 @@ Los permisos están en `PERMISOS`, dentro de `src/config.py`:
 | --- | --- | --- | --- |
 | 1 | Validación de tipos y faltantes | Quita espacios en los textos, convierte a número los años, códigos, pares y valores, y cuenta los vacíos. Una fila con algún vacío queda inválida. | **0** |
 | 2 | Separación de socio "Mundo" | Marca como inválidas las filas con socio "Mundo", porque son un total y se contarían dos veces. | **0** (no hay "Mundo") |
-| 3 | Claves repetidas | Clave = Flujo + Año + Código SA6 + Socio. Conserva la primera aparición y marca inválidas las repetidas. | **10** |
+| 3 | Claves repetidas | Clave = Flujo + Año + Código SA6 + Socio. Las filas que comparten clave tienen valores distintos (pueden ser registros parciales de la fuente), así que se **marcan y se conservan** para validarlas con la fuente original. | **20** marcadas, 0 descartadas |
 | 4 | Consistencia de valores | Verifica que `Valor_USD ≈ Valor_miles_USD × 1000` y que `Valor_USD_por_par ≈ Valor_USD / Cantidad_pares`, con una tolerancia de 0,01. | **1** inconsistencia (en Valor_USD vs. miles), **0** en valor por par |
-| — | Resumen | Totaliza el resultado. | **240 → 230 válidas, 10 descartadas** |
+| — | Resumen | Totaliza el resultado. | **240 → 240 válidas, 0 descartadas** |
 
-> **Importante y honesto:** la regla 4 solo **informa** la inconsistencia en la bitácora; **no marca la fila como inválida**. Por eso las únicas descartadas son las 10 repetidas.
+> **Importante y honesto:** la regla 4 solo **informa** la inconsistencia en la bitácora; **no marca la fila como inválida**. Como las claves repetidas tampoco se descartan, las 240 filas quedan válidas.
 
 **Datos que quedan:**
 - País reportante: España.
-- Años: 2020 a 2024, con 26, 34, 46, 47 y 77 registros válidos.
+- Años: 2020 a 2024, con 28, 34, 46, 50 y 82 registros.
 - 30 socios comerciales y 3 códigos SA6: 640411 Deportivo, 640399 Caucho y cuero, 640420 Cuero.
 
 ---
@@ -513,14 +516,14 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 ## 7. Guion de demo de 2 minutos (datos concretos)
 
 **Antes de la defensa:**
-1. Prepare los datos:
+1. Prepare los datos, en la carpeta del proyecto y con el entorno activado (`.venv` o `conda activate manaco`):
    ```
-   conda activate manaco
-   cd C:\manaco_data
    python scripts\seed_demo.py
+   python scripts\seed_solucion.py
    streamlit run app.py
    ```
 2. `seed_demo` carga 3 tiendas, 12 productos y 30 días de operación **hasta ayer**, así que **hoy queda libre** para la demo.
+   ⚠️ `seed_demo` **borra** los datos [Simulado] de producción y calidad: si no corre después `seed_solucion`, el *Prototipo de escenario* queda vacío en plena defensa.
 3. Tenga a mano una foto con varios zapatos sueltos, por ejemplo 4 zapatos, que son 2 pares.
 4. Ingrese con **admin / manaco2026**.
 
@@ -534,7 +537,7 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 | 1:05 | **Foto** | *Cierre y conteo* → Tienda Prado → **MAN-DEP-001**. Se ven inicial **50**, vendido **12** y esperado **38**. Suba la foto → *Contar con IA* → recuadros, conteo y confianza. | "La IA cuenta zapatos y los divide entre 2." |
 | 1:25 | **Alerta** | En *Conteo final* escriba **36**; observación: "Posible venta no registrada" → *Calcular y guardar cierre*. Sale la tarjeta roja **"Faltan 2 pares de MAN-DEP-001 en Tienda Prado (esperado 38, contado 36)"**. | "La persona confirma o corrige; guardamos los dos números y la foto." |
 | 1:40 | **Historial** | Filtro *Estado* = **Faltante** → seleccione la fila de hoy y se ve la foto → *Descargar Excel*. | "Evidencia y reporte para gerencia." |
-| 1:50 | **Tablero** | Muestre **240 → 230** en *Limpieza de datos* y cambie la *Métrica* a **Cantidad de pares** en *Mercado*. | "Cambiar la métrica cambia la conclusión, y avisamos las limitaciones." |
+| 1:50 | **Tablero** | Muestre **240 → 240**, las 20 claves repetidas y el diccionario en *Limpieza de datos*, descargue la tabla depurada, y cambie la *Métrica* a **Cantidad de pares** en *Mercado*. | "Por socio, la métrica cambia el ranking; y avisamos las limitaciones." |
 
 **Si sobra tiempo:**
 - Ingrese como **encargado / manaco2026** para mostrar que solo ve Apertura, Ventas y Cierre.
@@ -544,7 +547,7 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 
 ---
 
-## 8. 18 preguntas probables del docente
+## 8. 21 preguntas probables del docente
 
 1. **¿Cómo se calcula la diferencia?** Saldo esperado = inicial − vendido; diferencia = conteo final − esperado. Si es negativa es faltante, si es positiva es sobrante, y si es 0 (o está dentro de la tolerancia) es correcto.
 2. **¿Qué pasa si intento vender sin apertura o más de lo que hay?** El servicio lo rechaza con un mensaje claro y no guarda nada.
@@ -555,15 +558,18 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 7. **¿Y si no hay internet o el modelo falla?** Aparece un aviso y se cuenta a mano; el sistema no se cae.
 8. **¿Cómo guardan las contraseñas?** Con un hash bcrypt (con *salt*); nunca en texto plano.
 9. **¿Cómo controlan los permisos?** Con un diccionario de permisos por rol. El menú solo muestra lo permitido y cada página vuelve a comprobarlo al abrirse.
-10. **¿Qué limpieza le hicieron al Excel?** Cuatro reglas: tipos y faltantes (0), socio "Mundo" (0), claves repetidas (10 descartadas) y consistencia (1 inconsistencia, solo informada). De 240 filas quedan 230 válidas.
-11. **¿Por qué no borran las filas malas?** Se marcan como inválidas para que quede trazabilidad; se pueden ver en la pestaña de limpieza.
+10. **¿Qué limpieza le hicieron al Excel?** Cuatro reglas: tipos y faltantes (0), socio "Mundo" (0), claves repetidas (20 filas marcadas y conservadas) y consistencia (1 inconsistencia, solo informada). Las 240 filas quedan válidas, y el tablero muestra el diccionario de datos y permite descargar la tabla depurada.
+11. **¿Por qué no descartan las claves repetidas?** Porque las filas que comparten clave tienen valores distintos: pueden ser registros parciales de la fuente y no copias. Descartarlas a ciegas perdería información; se marcan para validarlas con la fuente original, y se ven en la pestaña de limpieza y en la hoja *Claves repetidas* del Excel descargable. Los hallazgos se mantienen igual con o sin esas filas.
 12. **¿Cómo integran los datos internos con el mercado?** Cada categoría de producto tiene su código SA6, el mismo del Excel. La tabla *Cruce* une las ventas de Manaco con la importación por ese código.
-13. **¿Qué limitaciones tienen los datos de mercado?** Son de España y no de Bolivia, el valor por par es aduanero y la cobertura por año es desigual (26 a 77 registros).
-14. **¿Cómo prueban que funciona?** Con 42 pruebas automáticas en pytest sobre las reglas de inventario, la limpieza del Excel, la conversión a pares y el pronóstico (`python -m pytest`).
+13. **¿Qué limitaciones tienen los datos de mercado?** Son de España y no de Bolivia, el valor por par es aduanero y la cobertura por año es desigual (28 a 82 registros).
+14. **¿Cómo prueban que funciona?** Con 48 pruebas automáticas en pytest sobre las reglas de inventario, la limpieza del Excel, el diccionario de datos, la tabla depurada, la conversión a pares, el pronóstico y la brecha de precio (`python -m pytest`).
 15. **¿Los datos del pronóstico y del prototipo son reales?** No. Son simulados y están marcados como [Simulado] en pantalla, porque el sistema solo tiene 30 días de ventas. Sirven para mostrar el método; con datos reales de 24 meses funcionaría igual.
-16. **¿Qué es el MAPE?** El error porcentual promedio del pronóstico. Se calcula con un backtest, es decir, pronosticando meses que ya se conocen y comparando con lo real.
+16. **¿Qué es el MAPE?** El error porcentual promedio del pronóstico. Se calcula con un backtest, es decir, pronosticando meses que ya se conocen y comparando con lo real. Con datos simulados demuestra el método, no la realidad (ver la pregunta 19).
 17. **¿Se puede usar otra base de datos?** Sí. Por defecto es SQLite, pero si se define la variable de entorno `DATABASE_URL` con una dirección `postgresql+psycopg://…`, el sistema usa PostgreSQL sin cambiar el código.
 18. **¿Qué le falta al sistema?** Editar o anular ventas, conexión con el punto de venta, un modelo de IA entrenado con fotos de Manaco, una base PostgreSQL en un servidor con HTTPS para muchos usuarios, y datos de Bolivia (INE o Aduana).
+19. **¿El MAPE prueba que el contrabando reduce la demanda?** No. El historial simulado se generó con ese efecto, así que el ajuste lo recupera casi por construcción. El backtest demuestra que el método funciona; la magnitud real se valida con ventas reales de Manaco.
+20. **¿Cambian las conclusiones si se mide valor o cantidad?** Por categoría, no: el orden es el mismo y Deportivo importa 2,97 veces lo que exporta en valor y 2,91 en pares. Por socio, sí: República Checa entra al top 6 de proveedores por pares y no por valor, porque su calzado es el más barato de la base (unos 9 USD por par).
+21. **¿Por qué la brecha de precio es la misma en las tres líneas?** Porque compara calzado equivalente: la referencia del mercado informal es un solo precio promedio, así que se usa como descuento informal (≈12%) y se aplica al precio de cada línea. Comparar el Cuero, el más caro, contra un precio informal promedio inflaría su brecha de forma artificial. Con precios informales por línea, la brecha sería distinta en cada una.
 
 ---
 
@@ -575,12 +581,10 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 | `encargado` | `manaco2026` | encargado | `scripts/seed_demo.py` |
 | `gerencia` | `manaco2026` | gerencia | `scripts/seed_demo.py` |
 
-**Abrir el sistema** (en PowerShell o Anaconda Prompt):
+**Abrir el sistema** (en PowerShell o Anaconda Prompt, dentro de la carpeta del proyecto y con el entorno activado: `.venv` o `conda activate manaco`):
 
 ```
-conda activate manaco
-cd C:\manaco_data
-python scripts\init_db.py      # solo la primera vez: tablas, Excel y usuario admin
+python scripts\init_db.py      # la primera vez, y cada vez que cambie la limpieza del Excel: tablas, Excel y usuario admin
 python scripts\seed_demo.py    # datos de demo (borra tiendas, productos, aperturas, ventas y cierres anteriores)
 python scripts\seed_solucion.py  # datos [Simulado] del prototipo de escenario (correrlo después de seed_demo)
 streamlit run app.py
@@ -590,7 +594,7 @@ streamlit run app.py
 - Para tomar la foto con el celular: conecte el celular a la misma red Wi-Fi y abra la *Network URL* que muestra Streamlit.
 - Para cerrar el sistema, presione `Ctrl + C` en la ventana de PowerShell.
 - Si cambia el código, cierre el sistema con `Ctrl + C` y vuelva a ejecutar `streamlit run app.py`.
-- Pruebas automáticas: `python -m pytest` (42 pruebas).
-- La primera vez después de aceptar el pull request hay que instalar la librería nueva: `pip install "psycopg[binary]"`.
+- Pruebas automáticas: `python -m pytest` (48 pruebas).
+- Después de cada `git pull`, ejecute `pip install -r requirements.txt` (instala librerías nuevas, como `psycopg` y `python-docx`) y `python scripts\init_db.py` (recarga el Excel con la limpieza vigente).
 
 ⚠️ Estas contraseñas son de prueba. En un uso real deben cambiarse desde la página **Usuarios**.
