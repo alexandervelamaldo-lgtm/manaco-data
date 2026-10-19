@@ -20,7 +20,9 @@ from sqlalchemy import delete, select  # noqa: E402
 from src.auth import crear_usuario  # noqa: E402
 from src.config import CATEGORIAS_SA6, ESTADO_CORRECTO, ROL_ENCARGADO, ROL_GERENCIA  # noqa: E402
 from src.db import crear_tablas, obtener_sesion  # noqa: E402
-from src.models import AnulacionCierre, Apertura, Cierre, Producto, Tienda, Usuario, Venta  # noqa: E402
+from src.models import (  # noqa: E402
+    AnulacionCierre, Apertura, Cierre, FactCalidad, FactProduccion, Producto, Tienda, Usuario, Venta,
+)
 from src.services import inventario as inv  # noqa: E402
 
 DIAS = 30
@@ -67,7 +69,7 @@ def main() -> None:
     inicio = hoy - timedelta(days=DIAS)
 
     with obtener_sesion() as s:
-        for modelo in (Venta, Cierre, Apertura, AnulacionCierre, Producto, Tienda):
+        for modelo in (Venta, Cierre, Apertura, AnulacionCierre, FactCalidad, FactProduccion, Producto, Tienda):
             s.execute(delete(modelo))
         encargado_id = _usuario_demo(s, "encargado", "Encargado de Tienda", ROL_ENCARGADO)
         _usuario_demo(s, "gerencia", "Gerencia Comercial", ROL_GERENCIA)

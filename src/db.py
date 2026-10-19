@@ -12,16 +12,19 @@ from src.config import DATA_DIR, DATABASE_URL
 
 
 def crear_motor(url: str = DATABASE_URL) -> Engine:
-    """Crea un motor SQLAlchemy con claves foráneas activadas en SQLite."""
-    if url.startswith("sqlite:///") and ":memory:" not in url:
+    """Crea un motor SQLAlchemy. En SQLite activa claves foráneas; en PostgreSQL
+    (p. ej. ``postgresql+psycopg://...``) usa la configuración por defecto del driver."""
+    es_sqlite = url.startswith("sqlite:///")
+    if es_sqlite and ":memory:" not in url:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-    motor = create_engine(url, connect_args={"check_same_thread": False})
+    motor = create_engine(url, connect_args={"check_same_thread": False} if es_sqlite else {})
 
-    @event.listens_for(motor, "connect")
-    def _activar_fk(conexion, _registro) -> None:  # noqa: ANN001
-        cursor = conexion.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+    if es_sqlite:
+        @event.listens_for(motor, "connect")
+        def _activar_fk(conexion, _registro) -> None:  # noqa: ANN001
+            cursor = conexion.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
 
     return motor
 

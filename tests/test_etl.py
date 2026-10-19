@@ -16,25 +16,31 @@ def resultado() -> etl.ResultadoETL:
 
 def test_filas_validas_y_descartadas(resultado):
     assert resultado.filas_originales == 240
-    assert resultado.filas_validas == 230
-    assert resultado.filas_descartadas == 10
+    assert resultado.filas_validas == 240
+    assert resultado.filas_descartadas == 0
 
 
 def test_sin_faltantes_ni_mundo(resultado):
     reglas = {r.regla: r for r in resultado.bitacora}
     assert reglas["Validación de tipos y faltantes"].filas_afectadas == 0
     assert reglas["Separación de socio 'Mundo'"].filas_afectadas == 0
-    assert reglas["Claves repetidas"].filas_afectadas == 10
+    assert reglas["Claves repetidas"].filas_afectadas == 20
 
 
 def test_totales_por_flujo(resultado):
     totales = resultado.validos.groupby("Flujo_comercial")["Valor_USD"].sum() / 1e6
-    assert round(totales["Importación"], 1) == 17055.8
-    assert round(totales["Exportación"], 1) == 10605.5
+    assert round(totales["Importación"], 1) == 18506.1
+    assert round(totales["Exportación"], 1) == 10917.3
 
 
-def test_claves_unicas_en_validos(resultado):
-    assert not resultado.validos.duplicated(subset=["Flujo_comercial", "Año", "Código_SA6", "Socio_comercial"]).any()
+def test_claves_repetidas_se_marcan_pero_no_se_descartan(resultado):
+    reglas = {r.regla: r for r in resultado.bitacora}
+    assert reglas["Claves repetidas"].filas_afectadas == 20
+    repetidas = resultado.datos.duplicated(
+        subset=["Flujo_comercial", "Año", "Código_SA6", "Socio_comercial"], keep=False,
+    )
+    # Las 20 filas con clave repetida siguen válidas: se marcan, no se descartan.
+    assert resultado.datos.loc[repetidas, "registro_valido"].all()
 
 
 def test_regla_mundo_y_repetidos_en_datos_sinteticos():
@@ -45,13 +51,13 @@ def test_regla_mundo_y_repetidos_en_datos_sinteticos():
     }
     df = pd.DataFrame([base, base, {**base, "Socio_comercial": "Mundo"}])
     res = etl.limpiar(df)
-    assert res.filas_validas == 1
-    assert res.datos["registro_valido"].tolist() == [True, False, False]
+    assert res.filas_validas == 2
+    assert res.datos["registro_valido"].tolist() == [True, True, False]
 
 
 def test_guardar_y_leer_db(sesion, resultado):
     etl.guardar_en_db(sesion, resultado)
     validos = etl.leer_comercio_db(sesion)
-    assert len(validos) == 230
+    assert len(validos) == 240
     assert len(etl.leer_comercio_db(sesion, solo_validos=False)) == 240
     assert not etl.leer_bitacora_db(sesion).empty

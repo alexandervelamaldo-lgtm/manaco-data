@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from src.config import (
     CLAVE_REGISTRO, COLUMNAS_EXCEL, EXCEL_PATH, TOLERANCIA_CONSISTENCIA,
 )
-from src.models import BitacoraLimpieza, ComercioExterior
+from src.models import (
+    BitacoraLimpieza, ComercioExterior, FactCalidad, FactProduccion, LogIngesta, Producto, RefMercadoLocal,
+)
 
 #: Nombre de columna del Excel → nombre de columna en la base de datos.
 MAPA_COLUMNAS: dict[str, str] = {
@@ -114,14 +116,15 @@ def limpiar(df_original: pd.DataFrame) -> ResultadoETL:
         else f"{n_mundo} registros agregados 'Mundo' excluidos para no contar dos veces.",
     ))
 
-    # Regla 3: claves repetidas (se conserva la primera aparición).
-    repetidos = df.duplicated(subset=CLAVE_REGISTRO, keep="first")
+    # Regla 3: claves repetidas. No se descartan: se conservan y se marcan,
+    # igual que el diagnóstico de la Estación 2 (pueden ser registros parciales
+    # de la fuente; se deben validar con la fuente original, no descartar a ciegas).
+    repetidos = df.duplicated(subset=CLAVE_REGISTRO, keep=False)
     n_rep = int(repetidos.sum())
-    df.loc[repetidos, "registro_valido"] = False
     bitacora.append(ReglaAplicada(
         "Claves repetidas", n_rep,
-        f"Clave ({', '.join(CLAVE_REGISTRO)}): se conserva la primera fila y se "
-        f"descartan {n_rep} repetidas.",
+        f"Clave ({', '.join(CLAVE_REGISTRO)}): {n_rep} filas comparten clave con otra "
+        "fila (valores distintos). Se conservan y se marcan; no se descartan.",
     ))
 
     # Regla 4: consistencia entre columnas calculadas.
@@ -188,3 +191,39 @@ def leer_bitacora_db(sesion: Session) -> pd.DataFrame:
         [{"Regla": f.regla, "Filas afectadas": f.filas_afectadas, "Detalle": f.detalle} for f in filas],
         columns=["Regla", "Filas afectadas", "Detalle"],
     )
+
+
+def leer_mercado_local_db(sesion: Session) -> pd.DataFrame:
+    """Devuelve la referencia de precios de la competencia y tipo de cambio paralelo. [Simulado]"""
+    filas = sesion.scalars(select(RefMercadoLocal).order_by(RefMercadoLocal.fecha)).all()
+    columnas = ["fecha", "ciudad", "mercado", "precio_competidor_bs", "tipo_cambio_paralelo"]
+    return pd.DataFrame([{c: getattr(f, c) for c in columnas} for f in filas], columns=columnas)
+
+
+def leer_produccion_db(sesion: Session) -> pd.DataFrame:
+    """Devuelve ``fact_produccion`` con la línea (categoría) del producto de cada lote. [Simulado]"""
+    consulta = select(FactProduccion, Producto.categoria).join(Producto, FactProduccion.producto_id == Producto.id)
+    filas = sesion.execute(consulta).all()
+    return pd.DataFrame(
+        [{"fecha": f.fecha, "categoria": cat, "pares": f.pares,
+          "costo_insumos_bs": f.costo_insumos_bs, "costo_mano_obra_bs": f.costo_mano_obra_bs} for f, cat in filas],
+        columns=["fecha", "categoria", "pares", "costo_insumos_bs", "costo_mano_obra_bs"],
+    )
+
+
+def leer_calidad_db(sesion: Session) -> pd.DataFrame:
+    """Devuelve ``fact_calidad`` con la línea (categoría) del producto de cada lote. [Simulado]"""
+    consulta = select(FactCalidad, Producto.categoria).join(Producto, FactCalidad.producto_id == Producto.id)
+    filas = sesion.execute(consulta).all()
+    return pd.DataFrame(
+        [{"fecha": f.fecha, "categoria": cat, "defectos": f.defectos, "devoluciones": f.devoluciones}
+         for f, cat in filas],
+        columns=["fecha", "categoria", "defectos", "devoluciones"],
+    )
+
+
+def leer_ingesta_db(sesion: Session) -> pd.DataFrame:
+    """Devuelve el registro de cargas de datos por sucursal. [Simulado]"""
+    filas = sesion.scalars(select(LogIngesta).order_by(LogIngesta.fecha.desc())).all()
+    columnas = ["fecha", "sucursal", "archivo", "filas_leidas", "filas_corregidas", "filas_rechazadas"]
+    return pd.DataFrame([{c: getattr(f, c) for c in columnas} for f in filas], columns=columnas)

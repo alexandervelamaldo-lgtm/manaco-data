@@ -48,7 +48,7 @@ def _cargar_datos_iniciales() -> None:
         if s.scalar(select(func.count(Usuario.id))):
             return
     log.info("Base nueva: cargando el Excel, el usuario admin y los datos de demostración")
-    for script in ("init_db.py", "seed_demo.py"):
+    for script in ("init_db.py", "seed_demo.py", "seed_solucion.py"):
         runpy.run_path(str(BASE_DIR / "scripts" / script), run_name="__main__")
 
 
@@ -190,6 +190,9 @@ PAGINAS: list[tuple[str, object, str, str]] = [
     ("tablero", "pages/5_Tablero_de_mercado.py", "Tablero de mercado", "tablero"),
     ("catalogo", "pages/6_Catalogo.py", "Catálogo", "catalogo"),
     ("usuarios", "pages/7_Usuarios.py", "Usuarios", "usuarios"),
+    ("pronostico", "pages/8_Pronostico_demanda.py", "Pronóstico de demanda", "pronostico"),
+    ("escenario", "pages/9_Prototipo_escenario.py", "Prototipo de escenario", "escenario"),
+    ("entregables", "pages/10_Entregables_escritos.py", "Entregables escritos", "entregables"),
 ]
 
 

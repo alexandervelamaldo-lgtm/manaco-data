@@ -43,7 +43,8 @@ COLOR_ROL: dict[str, str] = {"administrador": PRIMARIO, "encargado": INFO, "gere
 #: Íconos Material de cada página (navegación y encabezados).
 ICONOS: dict[str, str] = {
     "inicio": "home", "apertura": "inventory_2", "ventas": "point_of_sale", "cierre": "photo_camera",
-    "historial": "history", "tablero": "monitoring", "catalogo": "category", "usuarios": "group",
+    "historial": "history", "tablero": "monitoring", "pronostico": "trending_up", "escenario": "tune",
+    "entregables": "assignment", "catalogo": "category", "usuarios": "group",
 }
 
 CSS = f"""

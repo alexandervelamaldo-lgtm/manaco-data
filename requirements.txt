@@ -10,3 +10,5 @@ pillow>=10.4
 opencv-python-headless>=4.10
 bcrypt>=4.2
 pytest>=8.3
+# Opcional: solo se usa si DATABASE_URL apunta a postgresql+psycopg://...
+psycopg[binary]>=3.2

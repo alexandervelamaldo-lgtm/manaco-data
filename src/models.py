@@ -168,3 +168,81 @@ class BitacoraLimpieza(Base):
     filas_afectadas: Mapped[int] = mapped_column(Integer)
     detalle: Mapped[str] = mapped_column(Text)
     fecha: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+# --- Esquema en estrella (Manaco_Caso_Solucion_y_Prototipo.md, sección 2) ----
+# ``Producto`` ya cumple el rol de dim_producto, ``Tienda`` el de dim_tienda,
+# ``Venta`` el de fact_ventas, ``Apertura``/``Cierre`` el de fact_inventario y
+# ``ComercioExterior`` el de ref_comercio_exterior: no se duplican aquí.
+# Las siguientes tablas completan las dimensiones y hechos que faltaban.
+
+
+class DimFecha(Base):
+    """Dimensión de calendario: una fila por día, con rasgos de estacionalidad."""
+
+    __tablename__ = "dim_fecha"
+
+    fecha: Mapped[date] = mapped_column(Date, primary_key=True)
+    anio: Mapped[int] = mapped_column(Integer)
+    mes: Mapped[int] = mapped_column(Integer)
+    inicio_clases: Mapped[bool] = mapped_column(Boolean, default=False)
+    feriado: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class FactProduccion(Base):
+    """Lote de producción: pares fabricados y sus costos."""
+
+    __tablename__ = "fact_produccion"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fecha: Mapped[date] = mapped_column(Date, index=True)
+    lote: Mapped[str] = mapped_column(String(30))
+    producto_id: Mapped[int] = mapped_column(ForeignKey("productos.id"))
+    pares: Mapped[int] = mapped_column(Integer)
+    costo_insumos_bs: Mapped[float] = mapped_column(Float)
+    costo_mano_obra_bs: Mapped[float] = mapped_column(Float)
+
+    producto: Mapped[Producto] = relationship()
+
+
+class FactCalidad(Base):
+    """Defectos y devoluciones observados en un lote de producción."""
+
+    __tablename__ = "fact_calidad"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fecha: Mapped[date] = mapped_column(Date, index=True)
+    lote: Mapped[str] = mapped_column(String(30))
+    producto_id: Mapped[int] = mapped_column(ForeignKey("productos.id"))
+    defectos: Mapped[int] = mapped_column(Integer, default=0)
+    devoluciones: Mapped[int] = mapped_column(Integer, default=0)
+    motivo: Mapped[str] = mapped_column(String(120), default="")
+
+    producto: Mapped[Producto] = relationship()
+
+
+class RefMercadoLocal(Base):
+    """Referencia de precios de la competencia y tipo de cambio paralelo."""
+
+    __tablename__ = "ref_mercado_local"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fecha: Mapped[date] = mapped_column(Date, index=True)
+    ciudad: Mapped[str] = mapped_column(String(40))
+    mercado: Mapped[str] = mapped_column(String(80))
+    precio_competidor_bs: Mapped[float] = mapped_column(Float)
+    tipo_cambio_paralelo: Mapped[float] = mapped_column(Float)
+
+
+class LogIngesta(Base):
+    """Registro de cada carga de datos recibida de una sucursal."""
+
+    __tablename__ = "log_ingesta"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    fecha: Mapped[date] = mapped_column(Date, index=True)
+    sucursal: Mapped[str] = mapped_column(String(80))
+    archivo: Mapped[str] = mapped_column(String(120))
+    filas_leidas: Mapped[int] = mapped_column(Integer)
+    filas_corregidas: Mapped[int] = mapped_column(Integer)
+    filas_rechazadas: Mapped[int] = mapped_column(Integer)

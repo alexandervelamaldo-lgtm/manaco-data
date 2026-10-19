@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 # --- Rutas -------------------------------------------------------------------
@@ -12,7 +13,10 @@ FOTOS_DIR: Path = DATA_DIR / "fotos"
 MODELOS_DIR: Path = DATA_DIR / "modelos"
 DB_PATH: Path = DATA_DIR / "manaco.db"
 EXCEL_PATH: Path = RAW_DIR / "Base_de_Datos_MANACO.xlsx"
-DATABASE_URL: str = f"sqlite:///{DB_PATH.as_posix()}"
+#: SQLite por defecto (cero configuración). Para usar el PostgreSQL de la arquitectura
+#: propuesta en el caso, defina la variable de entorno DATABASE_URL, p. ej.:
+#: postgresql+psycopg://usuario:clave@localhost:5432/manaco (requiere ``pip install "psycopg[binary]"``).
+DATABASE_URL: str = os.environ.get("DATABASE_URL", f"sqlite:///{DB_PATH.as_posix()}")
 
 # --- Reglas de negocio -------------------------------------------------------
 #: Diferencia (en pares, en valor absoluto) que todavía se considera "Correcto".
@@ -52,6 +56,9 @@ PERMISOS: dict[str, tuple[str, ...]] = {
     "cierre": (ROL_ADMIN, ROL_ENCARGADO),
     "historial": (ROL_ADMIN, ROL_GERENCIA),
     "tablero": (ROL_ADMIN, ROL_GERENCIA),
+    "pronostico": (ROL_ADMIN, ROL_GERENCIA),
+    "escenario": (ROL_ADMIN, ROL_GERENCIA),
+    "entregables": (ROL_ADMIN, ROL_GERENCIA),
     "catalogo": (ROL_ADMIN,),
     "usuarios": (ROL_ADMIN,),
 }

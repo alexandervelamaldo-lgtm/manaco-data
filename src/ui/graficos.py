@@ -209,6 +209,42 @@ def grafico_top_socios(df: pd.DataFrame, metrica: str, n: int = 6) -> go.Figure:
     return fig
 
 
+# --- Pronóstico de demanda ----------------------------------------------------
+
+def grafico_pronostico(historial: pd.DataFrame, futuro: pd.DataFrame, linea: str) -> go.Figure:
+    """Historial simulado de ventas de una línea y su pronóstico base vs. ajustado."""
+    if historial.empty:
+        return figura_vacia()
+    fechas_hist = pd.to_datetime(historial["Fecha"])
+    fechas_fut = pd.to_datetime(futuro["Fecha"])
+    color = COLOR_CATEGORIA.get(linea, GRIS_BARRA)
+    enlace_x = pd.concat([fechas_hist.tail(1), fechas_fut], ignore_index=True)
+
+    fig = go.Figure([
+        go.Scatter(x=fechas_hist, y=historial["Pares_vendidos"], mode="lines", name="Histórico",
+                   line={"color": color, "width": 2.5},
+                   hovertemplate="%{x|%b %Y}<br>%{y:,.0f} pares<extra>Histórico</extra>"),
+        go.Scatter(
+            x=enlace_x,
+            y=pd.concat([historial["Pares_vendidos"].tail(1), futuro["Pronostico_base"]], ignore_index=True),
+            mode="lines", name="Pronóstico sin ajuste", line={"color": TEXTO_2, "width": 2, "dash": "dot"},
+            hovertemplate="%{x|%b %Y}<br>%{y:,.0f} pares<extra>Sin ajuste</extra>",
+        ),
+        go.Scatter(
+            x=enlace_x,
+            y=pd.concat([historial["Pares_vendidos"].tail(1), futuro["Pronostico_ajustado"]], ignore_index=True),
+            mode="lines+markers", name="Pronóstico ajustado (mercado informal)",
+            line={"color": PRIMARIO, "width": 2.5, "dash": "dash"}, marker={"size": 6},
+            hovertemplate="%{x|%b %Y}<br>%{y:,.0f} pares<extra>Ajustado</extra>",
+        ),
+    ])
+    fig.add_vline(x=fechas_hist.iloc[-1], line_dash="dot", line_color="#D1D5DB")
+    fig.update_yaxes(title="Pares/mes", rangemode="tozero")
+    fig.update_xaxes(title=None, tickformat="%b %Y")
+    return _estilo(fig, f"Pronóstico de demanda — {linea}", alto=380,
+                   subtitulo="Punteada gris: sin ajustar · roja: ajustada por presión del mercado informal")
+
+
 def grafico_valor_por_par(df: pd.DataFrame) -> go.Figure:
     """Rango (mínimo–máximo) y mediana del valor por par en cada categoría."""
     if df.empty:
