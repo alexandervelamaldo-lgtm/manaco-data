@@ -281,6 +281,75 @@ Funciona como un **asistente en 3 pasos**, con un indicador arriba: Seleccionar 
 
 ### 2.10 Usuarios (solo administrador) — ver el detalle en la sección 3
 
+> **Páginas 2.11 a 2.13:** las agregó un compañero (pull request #1) y usan **datos simulados**, marcados en pantalla como **[Simulado]** y **[Supuesto]**. No son ventas ni producción reales de Manaco: dígalo así en la defensa.
+
+### 2.11 Pronóstico de demanda (administrador y gerencia)
+
+**Para qué sirve:** proyectar cuántos pares por mes venderá cada línea, con y sin el efecto del mercado informal (contrabando).
+
+**Campos:**
+- **Línea**: Deportivo, Caucho y cuero o Cuero.
+- **Meses de historial**: 12, 24 o 36.
+- **Meses a proyectar**: 3, 6 o 12.
+
+**Qué muestra:**
+- **4 KPI:** pronóstico sin ajuste del próximo mes, pronóstico ajustado, sensibilidad de la línea al mercado informal y error del ajuste (**MAPE**), comparado con el error sin ajustar.
+- **Gráfico:** historial y proyección.
+- **Tabla de detalle:** mes, pronóstico sin ajustar, pronóstico ajustado y presión informal proyectada.
+- **Nota "De dónde salen estos datos".**
+
+**Cómo calcula** (`src/services/pronostico.py`):
+- **Historial:** se **simula** en el momento, porque el sistema solo tiene 30 días de ventas. Incluye un nivel base por línea, estacionalidad (inicio de clases y fin de año) y una presión informal creciente.
+- **Pronóstico sin ajustar:** promedio móvil estacional.
+- **Pronóstico ajustado:** reconstruye la demanda real (ventas ÷ efecto informal) y le vuelve a aplicar la presión informal proyectada.
+- **Backtest:** compara el error (MAPE) de los dos métodos en los últimos 6 meses conocidos.
+- **Sensibilidad por línea:** es un **supuesto** del equipo: 0,35 en Deportivo, 0,20 y 0,10 en las otras dos.
+
+**Qué se guarda:** nada; esta página es solo de cálculo. No necesita `seed_solucion.py`.
+
+**Frase para la defensa:** *"El pronóstico normal sobreestima la demanda porque ignora el contrabando. El ajustado lo corrige, y el MAPE muestra que el ajuste no empeora el error. Los datos son simulados, porque no hay 24 meses de historia real."*
+
+### 2.12 Prototipo de escenario (administrador y gerencia)
+
+**Para qué sirve:** simular un escenario de mercado ("¿qué pasa si sube el dólar paralelo o crece el contrabando?") y ver cómo cambian 5 indicadores.
+
+**Campos:**
+- **Línea**.
+- **Tipo de cambio paralelo (Bs/USD)**: de 6,96 a 15.
+- **Presión del mercado informal**: de 0 a 0,95.
+
+**Qué muestra:**
+- **5 KPI frente a metas de referencia.** Se ponen en rojo si no cumplen la meta. Las metas son un **supuesto** del equipo, no metas oficiales:
+  - ventas proyectadas, contra el promedio de los últimos 12 meses;
+  - cobertura de producción (meta ≥ 100 %);
+  - tasa de defectos (meta ≤ 3 %);
+  - brecha de precio frente al mercado informal (meta ≤ 20 %);
+  - rechazo en la ingesta de datos (meta ≤ 3 %).
+- **Gráfico de demanda proyectada**, con el escenario elegido.
+- **Resumen por línea:** pronóstico a 6 meses y MAPE.
+- **Referencia externa:** el gráfico de valor por par del Excel de España, que sí son datos reales del archivo.
+- **Estado de ingesta por sucursal:** las últimas cargas, con filas leídas, corregidas y rechazadas.
+
+**Validación:** si no están cargados los datos simulados, la página muestra "No hay datos simulados del escenario. Ejecute python scripts/seed_solucion.py."
+
+**Qué se guarda:** nada; esta página lee las tablas simuladas (ver la sección 6).
+
+**Frase para la defensa:** *"Si muevo el dólar paralelo, sube la brecha frente al calzado informal; si subo la presión informal, baja la demanda proyectada. Es un prototipo de decisión con datos simulados."*
+
+### 2.13 Entregables escritos (administrador y gerencia)
+
+**Para qué sirve:** mostrar dentro del sistema los 4 textos que pide la rúbrica del caso. Es una página de **solo texto**: no tiene campos ni guarda nada.
+
+**Pestañas:**
+1. **Problemas prioritarios:** tabla con 5 problemas, su justificación y los datos que usa el sistema.
+2. **Síntesis ejecutiva:** 3 hallazgos, 2 limitaciones y 1 pregunta estratégica.
+3. **Ficha de una página:** la propuesta estratégica.
+4. **Recomendación ejecutiva:** 2 alternativas comparadas y 3 indicadores de seguimiento.
+
+El mismo contenido está en `docs/ENTREGABLES_ESCRITOS.md` y en el Word `docs/Solucion_Manaco_Data.docx`, que se genera con `scripts/generar_docx_solucion.py`.
+
+**Frase para la defensa:** *"Los entregables escritos usan las mismas cifras que calcula el sistema, por ejemplo la alerta de 'Faltan 2 pares' y las 230 filas válidas del Excel."*
+
 ---
 
 ## 3. Roles: qué puede hacer cada uno
@@ -295,11 +364,14 @@ Los permisos están en `PERMISOS`, dentro de `src/config.py`:
 | Cierre y conteo | ✅ | ✅ | ❌ |
 | Historial | ✅ | ❌ | ✅ |
 | Tablero de mercado | ✅ | ❌ | ✅ |
+| Pronóstico de demanda | ✅ | ❌ | ✅ |
+| Prototipo de escenario | ✅ | ❌ | ✅ |
+| Entregables escritos | ✅ | ❌ | ✅ |
 | Catálogo | ✅ | ❌ | ❌ |
 | Usuarios | ✅ | ❌ | ❌ |
 
 **Administrador:**
-- Ve las 8 páginas.
+- Ve las 11 páginas.
 - Es el **único que puede anular un cierre**, con motivo.
 - Maneja el catálogo y los usuarios.
 - Puede marcar alertas como revisadas.
@@ -312,7 +384,7 @@ Los permisos están en `PERMISOS`, dentro de `src/config.py`:
 - Al entrar, aparece en **Apertura**, la primera de sus páginas.
 
 **Gerencia:**
-- Solo consulta: Inicio, Historial y Tablero.
+- Solo consulta: Inicio, Historial, Tablero, Pronóstico de demanda, Prototipo de escenario y Entregables escritos.
 - Puede **marcar alertas como revisadas** en Inicio.
 - No registra aperturas, ventas ni cierres.
 
@@ -422,6 +494,18 @@ La base es **SQLite**, en el archivo `data/manaco.db`, y se usa con SQLAlchemy 2
 | `comercio_exterior` | Las 240 filas del Excel (país, flujo, año, SA6, categoría, socio, valores, pares, valor por par) y `registro_valido` |
 | `bitacora_limpieza` | Cada regla de limpieza: regla, filas_afectadas, detalle, fecha |
 
+**Tablas de datos simulados**, agregadas con el pronóstico y el prototipo. Las llena `scripts/seed_solucion.py` con 24 meses de datos **[Simulado]**:
+
+| Tabla | Qué guarda |
+| --- | --- |
+| `dim_fecha` | Calendario: fecha, año, mes, si es inicio de clases y si es feriado |
+| `fact_produccion` | Lotes de producción: fecha, lote, producto, pares, costo de insumos y de mano de obra |
+| `fact_calidad` | Incidencias de calidad por lote: defectos, devoluciones y motivo |
+| `ref_mercado_local` | Precio de la competidora informal y tipo de cambio paralelo por ciudad y mercado (Eloy Salmón, La Cancha, La Ramada) |
+| `log_ingesta` | Cargas de archivos por sucursal: filas leídas, corregidas y rechazadas |
+
+Por eso el esquema se llama "en estrella": tablas de hechos (`fact_…`) alrededor de dimensiones como la fecha y el producto.
+
 Las **alertas no son una tabla aparte**: son los cierres con estado distinto de Correcto y `alerta_atendida = False`.
 
 ---
@@ -460,7 +544,7 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 
 ---
 
-## 8. 15 preguntas probables del docente
+## 8. 18 preguntas probables del docente
 
 1. **¿Cómo se calcula la diferencia?** Saldo esperado = inicial − vendido; diferencia = conteo final − esperado. Si es negativa es faltante, si es positiva es sobrante, y si es 0 (o está dentro de la tolerancia) es correcto.
 2. **¿Qué pasa si intento vender sin apertura o más de lo que hay?** El servicio lo rechaza con un mensaje claro y no guarda nada.
@@ -475,8 +559,11 @@ Las **alertas no son una tabla aparte**: son los cierres con estado distinto de 
 11. **¿Por qué no borran las filas malas?** Se marcan como inválidas para que quede trazabilidad; se pueden ver en la pestaña de limpieza.
 12. **¿Cómo integran los datos internos con el mercado?** Cada categoría de producto tiene su código SA6, el mismo del Excel. La tabla *Cruce* une las ventas de Manaco con la importación por ese código.
 13. **¿Qué limitaciones tienen los datos de mercado?** Son de España y no de Bolivia, el valor por par es aduanero y la cobertura por año es desigual (26 a 77 registros).
-14. **¿Cómo prueban que funciona?** Con 30 pruebas automáticas en pytest sobre las reglas de inventario, la limpieza del Excel y la conversión a pares (`python -m pytest`).
-15. **¿Qué le falta al sistema?** Editar o anular ventas, conexión con el punto de venta, un modelo de IA entrenado con fotos de Manaco, una base PostgreSQL en un servidor con HTTPS para muchos usuarios, y datos de Bolivia (INE o Aduana).
+14. **¿Cómo prueban que funciona?** Con 42 pruebas automáticas en pytest sobre las reglas de inventario, la limpieza del Excel, la conversión a pares y el pronóstico (`python -m pytest`).
+15. **¿Los datos del pronóstico y del prototipo son reales?** No. Son simulados y están marcados como [Simulado] en pantalla, porque el sistema solo tiene 30 días de ventas. Sirven para mostrar el método; con datos reales de 24 meses funcionaría igual.
+16. **¿Qué es el MAPE?** El error porcentual promedio del pronóstico. Se calcula con un backtest, es decir, pronosticando meses que ya se conocen y comparando con lo real.
+17. **¿Se puede usar otra base de datos?** Sí. Por defecto es SQLite, pero si se define la variable de entorno `DATABASE_URL` con una dirección `postgresql+psycopg://…`, el sistema usa PostgreSQL sin cambiar el código.
+18. **¿Qué le falta al sistema?** Editar o anular ventas, conexión con el punto de venta, un modelo de IA entrenado con fotos de Manaco, una base PostgreSQL en un servidor con HTTPS para muchos usuarios, y datos de Bolivia (INE o Aduana).
 
 ---
 
@@ -495,6 +582,7 @@ conda activate manaco
 cd C:\manaco_data
 python scripts\init_db.py      # solo la primera vez: tablas, Excel y usuario admin
 python scripts\seed_demo.py    # datos de demo (borra tiendas, productos, aperturas, ventas y cierres anteriores)
+python scripts\seed_solucion.py  # datos [Simulado] del prototipo de escenario (correrlo después de seed_demo)
 streamlit run app.py
 ```
 
@@ -502,6 +590,7 @@ streamlit run app.py
 - Para tomar la foto con el celular: conecte el celular a la misma red Wi-Fi y abra la *Network URL* que muestra Streamlit.
 - Para cerrar el sistema, presione `Ctrl + C` en la ventana de PowerShell.
 - Si cambia el código, cierre el sistema con `Ctrl + C` y vuelva a ejecutar `streamlit run app.py`.
-- Pruebas automáticas: `python -m pytest`.
+- Pruebas automáticas: `python -m pytest` (42 pruebas).
+- La primera vez después de aceptar el pull request hay que instalar la librería nueva: `pip install "psycopg[binary]"`.
 
 ⚠️ Estas contraseñas son de prueba. En un uso real deben cambiarse desde la página **Usuarios**.
